@@ -1,0 +1,466 @@
+.admin-layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden; /* prevent outer scroll */
+}
+
+/* Main right section (header + content) */
+.admin-main {
+  flex-grow: 1;
+  margin-left: 250px; /* space for sidebar */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header: sticks to the top */
+.admin-header {
+  position: fixed;
+  top: 0;
+  left: 250px; /* so it doesn’t overlap sidebar */
+  right: 20px;
+  height: 60px;
+  background: #ffffff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+}
+
+/* .admin-content {
+  flex-grow: 1;
+  margin-left: 250px; 
+  padding: 1.5rem;
+  height: 100vh;
+  overflow-y: auto; 
+} */
+
+/* Content: scrollable area under header */
+.admin-content {
+  margin-top: 60px; /* push below fixed header */
+  padding: 1.5rem;
+  height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+
+
+/* Sidebar container */
+.admin-sidebar {
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.453);
+  position: fixed; /* stays in place */
+  top: 0;
+  left: 0;
+  bottom: 0;
+  overflow-y: auto; /* scroll only if sidebar is too tall */
+}
+
+/* Main sidebar content */
+.main-content {
+  background: #ffffff;
+  flex: 1;
+  min-height: 100vh;
+  padding: 1.25rem;
+  box-sizing: border-box;
+}
+
+/* Base link */
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  transition: all 0.25s ease-in-out;
+  color: #e6e6e6;
+  position: relative;
+  z-index: 2;
+}
+
+:root {
+  --ext: 33px; /* how much it extends outward */
+}
+
+.admin-sidebar {
+  overflow: visible; /* allow extension */
+}
+
+.nav-link {
+  position: relative;
+  display: block;
+  padding: 12px 16px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-radius: 30px 0 0 30px; /* left rounded only */
+}
+
+/* ACTIVE: extend background */
+.nav-link.active {
+  background-color: #ffffff;
+  color: #392870 !important;
+  font-weight: 700;
+  border-radius: 30px 0 0 30px;
+  padding-right: calc(16px + var(--ext));
+  margin-right: calc(-1 * var(--ext));
+}
+
+/* HOVER: same as active but lighter */
+.nav-link:hover {
+  cursor: pointer;
+  background-color: rgba(255, 255, 255, 0.447);
+  color: #392870 !important;
+  border-radius: 30px 0 0 30px;
+  padding-right: calc(16px + var(--ext));
+  margin-right: calc(-1 * var(--ext));
+}
+
+/* Icons */
+.nav-link img {
+  width: 22px;
+  height: 22px;
+  margin-right: 10px;
+}
+
+
+
+
+/* cataloging page table */
+.catalog-container {
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 15px;
+}
+
+.custom-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.custom-table th,
+.custom-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.book-row {
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.book-row:hover {
+  background-color: #6552a349;
+}
+
+
+
+
+
+/* bibliographical record in book details */
+.bibliographical-record {
+  background: #ffffff;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-family: 'Inter', sans-serif;
+}
+
+.bibliographical-record h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.bibliographical-record p {
+  margin: 0.75rem;
+  line-height: 1.6;
+  display: flex;
+}
+
+.bibliographical-record strong {
+  color: #111827;
+  width: 180px; /* fixed width for labels so values align */
+  display: inline-block;
+}
+
+
+/* Copies Info Container */
+.copies-info {
+  background: #ffffff;
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-family: 'Inter', sans-serif;
+}
+
+.copies-info h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+/* Table Styling */
+.copies-info table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  overflow: hidden;
+}
+
+.copies-info th {
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+.copies-info td {
+  padding: 0.75rem;
+}
+
+
+
+/* spinner */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top: 4px solid #392870; /* Your custom color */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto; /* center horizontally */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.center-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;   /* full screen height */
+  text-align: center;
+  flex-direction: column; /* so text or spinner stacks vertically */
+}
+
+
+
+
+
+
+
+/* ===== Form Wrapper ===== */
+.record {
+  font-size: 2em;
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #e3e3e3;
+}
+
+
+.book-form {
+  max-width: 800px;
+  margin: 20px auto;
+  padding: 20px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ===== Headings ===== */
+.book-form h1 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+/* ===== Fieldset ===== */
+.book-form fieldset {
+  margin-bottom: 20px;
+  padding: 10px;
+  border-radius: 6px;
+}
+
+.book-form legend {
+  font-weight: bold;
+}
+
+/* ===== Flex Rows and Columns ===== */
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.flex-col {
+  display: flex;
+  flex-direction: column;
+  /* gap: 10px; */
+  margin-bottom: 10px;
+  /* margin-left: 5px; */
+  /* padding-left: 10px; */
+}
+
+.flex-grow {
+  flex: 1;
+}
+
+/* ===== Checklist ===== */
+.right-column {
+  flex: 2;
+  display: flex;
+  flex-direction: column;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  flex: 1; /* allows checklist to stretch vertically */
+}
+
+.checklist label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: normal;
+  width: 100%;
+  padding-bottom: 2px;
+}
+
+
+/* ===== Labels ===== */
+label {
+  width: 120px;
+  font-weight: 500;
+}
+
+/* ===== Inputs and Selects ===== */
+input[type="text"],
+input[type="number"],
+select,
+textarea {
+  flex: 1;
+  padding: 5px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+input.small {
+  width: 100px;
+}
+
+textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* ===== Buttons ===== */
+button {
+  padding: 5px 10px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+button.add-more {
+  width: 130px;
+  background: #392870a9;
+  border-radius: 10px;
+  box-shadow: 1px 2px 7px 1px rgba(156, 156, 156, 0.83);
+  color: white;
+  padding: 8px 10px;
+  margin-left: auto; /* pushes the button to the right */
+  display: block; /* optional if needed */
+  margin-bottom: 15px;
+}
+
+button.add-more:hover {
+  background: #392870 ;
+}
+
+button.submit-btn {
+  width: 100%;
+  background: #4caf50;
+  color: white;
+  padding: 10px;
+  font-size: 1em;
+}
+
+
+
+/* ===== Cute Inputs and Dropdowns ===== */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: 'Inter', sans-serif;
+  transition: all 0.2s ease;
+  appearance: none; /* removes default styling for select */
+}
+
+/* Hover effect */
+input[type="text"]:hover,
+input[type="number"]:hover,
+textarea:hover,
+select:hover {
+  border-color: #39287079; /* slightly darker violet */
+  box-shadow: 0 0 4px rgba(126, 87, 194, 0.2);
+}
+
+/* Focus effect */
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #512da8; /* deep violet on focus */
+  background-color: #f5f3f7; /* slightly lighter background */
+  box-shadow: 0 0 6px rgba(81, 45, 168, 0.3);
+}
+
+/* Small inputs */
+input.small,
+select.small {
+  width: 100px;
+}
+
+/* Textareas */
+textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+
+/* Dropdown specific: arrow styling */
+select {
+  background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='gray' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 10px 6px;
+  cursor: pointer;
+}
+
+
+
+.sub-label {
+  font-size: 0.75rem;
+  color: #666666; 
+  margin-top: 0;
+  display: block;
+  text-align: center;
+  text-decoration: italic;
+}
+
+
+
