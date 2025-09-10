@@ -18,6 +18,8 @@ class DatabaseSeeder extends Seeder
             SectionSeeder::class,
             MaterialTypeSeeder::class,
             SourceSeeder::class,
+            PatronSeeder::class,
+            CirculationSeeder::class,
         ]);
         // User::factory(10)->create(); 
 

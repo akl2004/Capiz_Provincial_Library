@@ -41,6 +41,7 @@ class BookController extends Controller
         'source' => 'required|in:library,donated',
         'source_person' => 'nullable|string',
         'copies' => 'required|integer|min:1',
+        'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
     ]);
 
     /// Map section → abbreviation
@@ -107,4 +108,22 @@ class BookController extends Controller
 
         return response()->json($book);
     }
+
+
+
+    public function getByBarcode($barcode)
+    {
+        $bookCopy = \App\Models\BookCopy::with('book')
+            ->where('barcode', $barcode)
+            ->first();
+
+        if (!$bookCopy) {
+            return response()->json(['message' => 'Book not found'], 404);
+        }
+
+        return response()->json($bookCopy);
+    }
+
+
+
 }

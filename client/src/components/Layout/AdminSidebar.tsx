@@ -28,7 +28,7 @@ const AdminSidebar = () => {
     },
     {
       name: "Patron",
-      path: "/patron",
+      path: "/patrons",
       icon: patronIcon,
       activeIcon: patronIconActive,
     },

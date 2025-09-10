@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import AxiosInstance from "../../AxiosInstance";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import AxiosInstance from "../../../AxiosInstance";
+import LoadingSpinner from "../../LoadingSpinner";
 
 interface BookCopy {
   id: number;

@@ -264,7 +264,7 @@
 
 
 .book-form {
-  max-width: 800px;
+  max-width: 90%;
   margin: 20px auto;
   padding: 20px;
   background: #f9f9f9;
@@ -395,6 +395,73 @@ button.submit-btn {
 }
 
 
+.cover-image-container {
+  display: flex;
+  flex-direction: column;
+  width: 200px; /* fixed width */
+  gap: 5px;
+}
+
+.cover-image-label {
+  font-weight: 600;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.cover-image-box {
+  width: 200px;
+  height: 250px;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+  background-color: #f8f8f8;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+}
+
+.cover-image-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover-image-placeholder {
+  color: #aaa;
+  text-align: center;
+  font-size: 0.9rem;
+  padding: 0 5px;
+}
+
+.cover-image-input {
+  display: none; /* hide the actual file input */
+}
+
+.cover-image-button {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #616060ef;
+  color: white;
+  border: none;
+  padding: 7px 11px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0; /* hidden by default */
+  transition: opacity 0.2s;
+}
+
+.cover-image-box:hover .cover-image-button {
+  opacity: 1; /* show on hover */
+}
+
+
+
+
 
 /* ===== Cute Inputs and Dropdowns ===== */
 input[type="text"],
@@ -464,3 +531,243 @@ select {
 
 
 
+
+
+/* ===== Modal Overlay & Box ===== */
+.modal-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 0.4);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  z-index: 1050;
+}
+
+.modal-box {
+  max-width: 90vw;
+  width: 400px;
+  margin: auto;
+  padding: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  background-color: #ffffff;
+  position: relative;
+  animation: popIn 0.25s ease-out;
+}
+
+.modal-box h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.modal-close-btn {
+  font-size: 1.5rem;
+  padding: 0.25rem 0.5rem;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+/* Animation */
+@keyframes popIn {
+  from {
+    transform: scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ===== Global Input/Textarea Styling ===== */
+.modal-box input[type="text"],
+.modal-box input[type="email"],
+.modal-box input[type="number"],
+.modal-box textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  font-family: "Inter", sans-serif;
+  margin-bottom: 12px;
+  transition: all 0.2s ease;
+}
+
+.modal-box input[type="text"]:hover,
+.modal-box input[type="email"]:hover,
+.modal-box input[type="number"]:hover,
+.modal-box textarea:hover {
+  border-color: #39287079;
+  box-shadow: 0 0 4px rgba(126, 87, 194, 0.2);
+}
+
+.modal-box input[type="text"]:focus,
+.modal-box input[type="email"]:focus,
+.modal-box input[type="number"]:focus,
+.modal-box input:focus,
+.modal-box textarea:focus {
+  outline: none;
+  border-color: #512da8;
+  background-color: #f5f3f7;
+  box-shadow: 0 0 6px rgba(81, 45, 168, 0.3);
+}
+
+.modal-box button.submit-btn {
+  width: 100%;
+  background: #512da8e0;
+  color: white;
+  padding: 10px;
+  font-size: 1em;
+  border-radius: 10px;
+  transition: background 0.2s ease;
+}
+
+.modal-box button.submit-btn:hover {
+  background: #512da8;
+}
+
+
+.num-label {
+  width: 150px;
+}
+
+
+
+
+
+/* ===== Attendance Page Container ===== */
+.attendance-container {
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  font-family: "Inter", sans-serif;
+  margin-top: 1.5rem;
+}
+
+/* Heading */
+.attendance-container h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #392870;
+}
+
+/* Attendance Form */
+.attendance-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 2rem;
+}
+
+.attendance-form label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.attendance-form input,
+.attendance-form select,
+.attendance-form textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #ccc;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+.attendance-form input:focus,
+.attendance-form select:focus,
+.attendance-form textarea:focus {
+  border-color: #512da8;
+  background-color: #f5f3f7;
+  box-shadow: 0 0 6px rgba(81, 45, 168, 0.3);
+}
+
+/* Form Button */
+.attendance-form button {
+  width: 150px;
+  padding: 10px;
+  background: #392870a9;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  margin-top: 10px;
+  transition: background 0.25s ease;
+}
+
+.attendance-form button:hover {
+  background: #392870;
+}
+
+/* Attendance Table */
+.attendance-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1.5rem;
+}
+
+.attendance-table th,
+.attendance-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.attendance-table th {
+  font-weight: 600;
+  background: #f5f3f7;
+}
+
+.attendance-table tr:hover {
+  background-color: #f3ecff;
+  transition: background 0.2s ease;
+}
+
+
+/* ===== Status Badges ===== */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem; /* more horizontal padding */
+  border-radius: 9999px;
+  font-size: 0.75rem; /* slightly bigger */
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  white-space: nowrap; /* prevent text from breaking */
+}
+
+
+.status-in {
+  background-color: #4caf50; /* green */
+}
+
+.status-out {
+  background-color: #f44336; /* red */
+}
+
+.timeout-btn {
+  width: 100px;
+  background: #392870c0;
+  color: white;
+  padding: 4px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: background 0.25s ease;
+}
+
+.timeout-btn:hover {
+  background: #392870;
+}

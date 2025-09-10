@@ -11,14 +11,15 @@ import BookFormSample from "./components/Admin/BookFormSample";
 
 // Pages
 import Patron from "./components/pages/Patron";
-import Cataloging from "./components/pages/Cataloging";
+import Cataloging from "./components/pages/Catalog/Cataloging";
 import Accession from "./components/pages/Accession";
 import Circulation from "./components/pages/Circulation";
 import Attendance from "./components/pages/Attendance";
 import Reports from "./components/pages/Reports";
-import BookDetails from "./components/pages/BookDetails";
-import CopyInformation from "./components/pages/CopyInformation";
-import BookForm from "./components/pages/BookForm";
+import BookDetails from "./components/pages/Catalog/BookDetails";
+import CopyInformation from "./components/pages/Catalog/CopyInformation";
+import BookForm from "./components/pages/Catalog/BookForm";
+import IssueForm from "./components/pages/IssueForm";
 
 export default function App() {
   return (
@@ -33,7 +34,7 @@ export default function App() {
           }
         />
         <Route
-          path="/patron"
+          path="/patrons"
           element={
             <ProtectedRoute>
               <AdminLayout content={<Patron />} />
@@ -101,6 +102,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminLayout content={<Reports />} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/issue"
+          element={
+            <ProtectedRoute>
+              <AdminLayout content={<IssueForm />} />
             </ProtectedRoute>
           }
         />

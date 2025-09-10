@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import AxiosInstance from "../../AxiosInstance";
+import AxiosInstance from "../../../AxiosInstance";
 import { useNavigate } from "react-router-dom";
-import LoadingSpinner from "../../components/LoadingSpinner"; // <-- import spinner
+import LoadingSpinner from "../../../components/LoadingSpinner"; // <-- import spinner
 
 interface Book {
   id: number;

@@ -35,6 +35,7 @@ class Book extends Model
         'dewey_decimal',
         'author_number',
         'call_number',
+        'cover_image',
     ];
 
     protected $casts = [

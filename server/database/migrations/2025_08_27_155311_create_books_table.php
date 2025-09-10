@@ -50,6 +50,9 @@ return new class extends Migration
             // New fields
             $table->enum('section', ['Gen. Reference', 'Filipiniana', 'Gen. Circulation']);
 
+            // Book cover image
+            $table->string('cover_image')->nullable(); // stores image path or URL
+
             $table->timestamps();
         });
     }
