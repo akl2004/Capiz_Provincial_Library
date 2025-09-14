@@ -6,20 +6,20 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import AdminLayout from "./components/Layout/AdminLayout";
 
-import BookList from "./components/Admin/BookList";
-import BookFormSample from "./components/Admin/BookFormSample";
-
 // Pages
-import Patron from "./components/pages/Patron";
+import Patron from "./components/pages/Patron/Patron";
 import Cataloging from "./components/pages/Catalog/Cataloging";
 import Accession from "./components/pages/Accession";
-import Circulation from "./components/pages/Circulation";
+import Circulation from "./components/pages/Circulation/Circulation";
 import Attendance from "./components/pages/Attendance";
 import Reports from "./components/pages/Reports";
 import BookDetails from "./components/pages/Catalog/BookDetails";
 import CopyInformation from "./components/pages/Catalog/CopyInformation";
 import BookForm from "./components/pages/Catalog/BookForm";
-import IssueForm from "./components/pages/IssueForm";
+import IssueForm from "./components/pages/Circulation/IssueForm";
+import RoleSelection from "./components/pages/Authentication/RoleSelection";
+import PatronInfo from "./components/pages/Patron/PatronInfo";
+import LoanDaysSetting from "./components/Admin/LoanDaysSettings";
 
 export default function App() {
   return (
@@ -27,6 +27,14 @@ export default function App() {
       <Routes>
         <Route
           path="/"
+          element={
+            <ProtectedRoute>
+              <RoleSelection />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admindashboard"
           element={
             <ProtectedRoute>
               <AdminLayout content={<AdminDashboard />} />
@@ -38,6 +46,14 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminLayout content={<Patron />} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patrons/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout content={<PatronInfo />} />
             </ProtectedRoute>
           }
         />
@@ -90,6 +106,14 @@ export default function App() {
           }
         />
         <Route
+          path="circulation/issue"
+          element={
+            <ProtectedRoute>
+              <AdminLayout content={<IssueForm />} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/attendance"
           element={
             <ProtectedRoute>
@@ -106,26 +130,10 @@ export default function App() {
           }
         />
         <Route
-          path="/issue"
+          path="/settings/loan-days"
           element={
             <ProtectedRoute>
-              <AdminLayout content={<IssueForm />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/books"
-          element={
-            <ProtectedRoute>
-              <BookList />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/books/add"
-          element={
-            <ProtectedRoute>
-              <BookFormSample />
+              <AdminLayout content={<LoanDaysSetting />} />
             </ProtectedRoute>
           }
         />

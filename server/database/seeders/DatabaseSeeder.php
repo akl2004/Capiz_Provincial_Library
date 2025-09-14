@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
             SourceSeeder::class,
             PatronSeeder::class,
             CirculationSeeder::class,
+            AdminUserSeeder::class,
         ]);
         // User::factory(10)->create(); 
 

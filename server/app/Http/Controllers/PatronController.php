@@ -19,8 +19,14 @@ class PatronController extends Controller
             'patron_id' => 'nullable|string|unique:patrons,patron_id', // allow null
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:patrons,email',
-            'address' => 'nullable|string|max:255',
+            'barangay' => 'nullable|string|max:255',
+            'municipality' => 'required|string|max:255',
+            'province' => 'required|string|max:255',
             'number' => 'nullable|string|max:20',
+            'status' => 'nullable|string|max:50',
+            'age' => 'nullable|integer|min:0',
+            'notes' => 'nullable|string',
+            'expiry_date' => 'nullable|date',
         ]);
 
         // If patron_id not provided → auto-generate
@@ -46,7 +52,9 @@ class PatronController extends Controller
         $validated = $request->validate([
             'name' => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:patrons,email,' . $id,
-            'address' => 'nullable|string|max:255',
+            'barangay' => 'nullable|string|max:255',
+            'municipality' => 'sometimes|string|max:255',
+            'province' => 'sometimes|string|max:255',
             'number' => 'nullable|string|max:20',
         ]);
 

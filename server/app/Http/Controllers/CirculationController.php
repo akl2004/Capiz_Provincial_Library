@@ -1,11 +1,13 @@
-<?php
+<?php 
 
 namespace App\Http\Controllers;
 
 use App\Models\Circulation;
 use App\Models\BookCopy;
+use App\Models\LibrarySetting;
 use App\Models\Patron;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class CirculationController extends Controller
 {
@@ -21,34 +23,39 @@ class CirculationController extends Controller
     {
         $validated = $request->validate([
             'book_copy_id' => 'required|exists:book_copies,id',
-            'patron_id' => 'required|exists:patrons,id',
+            'patron_id'    => 'required|exists:patrons,patron_id', // ✅ validate by custom Patron ID
         ]);
 
         $bookCopy = BookCopy::findOrFail($validated['book_copy_id']);
+        $patron   = Patron::where('patron_id', $validated['patron_id'])->firstOrFail();
 
         if ($bookCopy->status === 'borrowed') {
             return response()->json(['message' => 'This copy is already borrowed'], 400);
         }
 
         $issueDate = now();
-        $dueDate = $issueDate->copy()->addDays(5);
+
+        // ✅ Fetch global default (fallback = 5 days if not set)
+        $loanDays = (int) LibrarySetting::getValue('default_loan_days', 5);
+
+        $dueDate = Carbon::parse($issueDate)->addDays($loanDays);
 
         $circulation = Circulation::create([
             'book_copy_id' => $bookCopy->id,
-            'patron_id' => $validated['patron_id'],
-            'issue_date' => $issueDate,
-            'due_date' => $dueDate,
-            'status' => 'borrowed',
+            'patron_id'    => $patron->id,
+            'issue_date'   => $issueDate,
+            'due_date'     => $dueDate,
+            'status'       => 'borrowed',
         ]);
 
-        // update ONLY this copy
         $bookCopy->update(['status' => 'borrowed']);
 
         return response()->json([
-            'message' => 'Book copy borrowed successfully',
+            'message'     => 'Book copy borrowed successfully',
             'circulation' => $circulation
         ], 201);
     }
+
 
     // Return a borrowed book copy
     public function return(Request $request, $id)

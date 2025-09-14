@@ -15,7 +15,7 @@ interface Book {
   volume: string | null;
   number_of_pages: number | null;
   source: string;
-  class_section: string;
+  section: string;
   dewey_decimal: string;
   created_at: string;
   copies: BookCopy[];
@@ -132,7 +132,7 @@ const Accession = () => {
                       <td>{copy.accession_number}</td>
                       <td>{new Date(book.created_at).toLocaleDateString()}</td>
                       <td>
-                        {book.class_section} {book.dewey_decimal}
+                        {book.section} {book.dewey_decimal}
                       </td>
                       <td>{book.authors?.join(", ")}</td>
                       <td>{book.title}</td>

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import LogoutModal from "../pages/Authentication/LogoutModal";
+import { useNavigate } from "react-router-dom";
 
 interface HeaderProps {
   user: {
@@ -11,16 +13,27 @@ interface HeaderProps {
 const Header = ({ user, onLogout }: HeaderProps) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const navigate = useNavigate();
 
   const toggleDarkMode = () => {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle("dark", !darkMode);
   };
 
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true); // Show confirmation modal
+    setDropdownOpen(false); // Close dropdown
+  };
+
+  const handleConfirmLogout = () => {
+    setShowLogoutModal(false);
+    onLogout();
+    navigate("/"); // go back to RoleSelection
+  };
+
   return (
-    <header
-      className="admin-header"
-    >
+    <header className="admin-header">
       {/* LEFT: System Name */}
       <h2 className="m-0 fw-bold">Library System</h2>
 
@@ -48,7 +61,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
             onClick={() => setDropdownOpen(!dropdownOpen)}
           >
             <img
-              src={user.avatar}
+              src={user.avatar || "./src/assets/lib-logo.png"}
               alt="avatar"
               className="rounded-circle me-2"
               style={{ width: "32px", height: "32px" }}
@@ -61,14 +74,21 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               className="dropdown-menu dropdown-menu-end show"
               style={{ position: "absolute" }}
             >
-              <button className="dropdown-item">Login</button>
-              <button className="dropdown-item" onClick={onLogout}>
+              <button className="dropdown-item" onClick={handleLogoutClick}>
                 Logout
               </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <LogoutModal
+          onClose={() => setShowLogoutModal(false)}
+          onConfirm={handleConfirmLogout}
+        />
+      )}
     </header>
   );
 };

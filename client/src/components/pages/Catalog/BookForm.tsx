@@ -115,11 +115,10 @@ const BookForm: React.FC = () => {
     formData.append("geographical_subject", geographicalSubject);
     formData.append("author", author);
     formData.append("editor", editor);
-    otherAuthorsEditors
-      .filter((oae) => oae != null && oae.toString().trim() !== "")
-      .forEach((oae) =>
-        formData.append("other_author_editor[]", oae.toString().trim())
-      );
+    formData.append(
+      "other_author_editor",
+      otherAuthorsEditors.filter((oae) => oae.trim() !== "").join(", ")
+    );
     formData.append("isbn", isbn);
     formData.append("dewey_decimal", deweyDecimal);
     formData.append("author_number", authorNumber);
@@ -143,7 +142,7 @@ const BookForm: React.FC = () => {
     formData.append("cataloging_note", catalogingNote);
     formData.append("internal_note", internalNote);
     formData.append("copies", copies.toString());
-    formData.append("class_section", section);
+    formData.append("section", section);
     formData.append("source", source.toLowerCase().trim());
     formData.append("material_type", materialType);
     if (coverImage) formData.append("cover_image", coverImage);
@@ -649,29 +648,55 @@ const BookForm: React.FC = () => {
       {/* ===== Barcode Modal ===== */}
       {showBarcodeModal && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Generated Barcodes</h2>
-            {bookCopies.map((c) => (
-              <div
-                key={c.copy_number}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  marginBottom: "10px",
-                }}
-              >
-                <span>Copy {c.copy_number}</span>
-                <Barcode value={c.barcode} />
-              </div>
-            ))}
-            <div style={{ marginTop: "20px", textAlign: "right" }}>
+          <div className="modal-box">
+            {/* Close button */}
+            <button
+              onClick={() => setShowBarcodeModal(false)}
+              className="modal-close-btn"
+            >
+              &times;
+            </button>
+
+            <h2 className="text-xl font-semibold mb-4">Generated Barcodes</h2>
+
+            {/* <div className="barcode-list">
+              {bookCopies.map((c) => (
+                <div key={c.copy_number} className="barcode-item">
+                  <span>Copy {c.copy_number}</span>
+                  <Barcode value={c.barcode} />
+                </div>
+              ))}
+            </div> */}
+
+            <div id="printable-barcodes">
+              {bookCopies.map((c) => (
+                <div
+                  key={c.copy_number}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    marginBottom: "10px",
+                  }}
+                >
+                  <span>Copy {c.copy_number}</span>
+                  <Barcode value={c.barcode} />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2 mt-4 no-print">
               <button
                 onClick={() => window.print()}
-                style={{ marginRight: "10px" }}
+                className="submit-btn mb-4"
               >
                 🖨 Print All
               </button>
-              <button onClick={() => setShowBarcodeModal(false)}>Close</button>
+              <button
+                onClick={() => setShowBarcodeModal(false)}
+                className="submit-btn"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

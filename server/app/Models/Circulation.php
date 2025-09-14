@@ -34,8 +34,8 @@ class Circulation extends Model
         return $this->belongsTo(BookCopy::class);
     }
 
-    // public function patron()
-    // {
-    //     return $this->belongsTo(Patron::class);
-    // }
+    public function patron()
+    {
+        return $this->belongsTo(Patron::class);
+    }
 }

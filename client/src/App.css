@@ -301,10 +301,7 @@
 .flex-col {
   display: flex;
   flex-direction: column;
-  /* gap: 10px; */
   margin-bottom: 10px;
-  /* margin-left: 5px; */
-  /* padding-left: 10px; */
 }
 
 .flex-grow {
@@ -548,8 +545,9 @@ select {
 }
 
 .modal-box {
+  height: 90%;
   max-width: 90vw;
-  width: 400px;
+  width: 800px;
   margin: auto;
   padding: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -557,6 +555,7 @@ select {
   background-color: #ffffff;
   position: relative;
   animation: popIn 0.25s ease-out;
+  overflow-y: auto;
 }
 
 .modal-box h2 {
@@ -636,14 +635,52 @@ select {
   background: #512da8;
 }
 
-
-.num-label {
-  width: 150px;
+.modal-box .relative {
+  position: relative; /* ensures ul stays inside this div */
 }
 
+.modal-box .suggestion-list {
+  position: absolute;
+  top: 100%;       /* directly under input */
+  left: 0;
+  right: 0;        /* full width of input */
+  background: white;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  max-height: 160px;
+  z-index: 100;    /* higher than modal background */
+  list-style: none;   /* removes bullet/dash */
+  margin: 0;          /* reset default spacing */
+  padding: 0;
+}
 
+.modal-box .suggestion-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #eee;
+}
 
+.modal-box .suggestion-item:hover {
+  background-color: #f2f2f2;
+}
 
+.modal-box .suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.long {
+  width: 160px;
+}
+
+.address-row {
+  display: flex;
+  gap: 16px; /* space between inputs */
+  margin-bottom: 12px;
+}
+
+.address-row > div {
+  flex: 1; /* equal width for each field */
+}
 
 /* ===== Attendance Page Container ===== */
 .attendance-container {
@@ -770,4 +807,525 @@ select {
 
 .timeout-btn:hover {
   background: #392870;
+}
+
+
+
+/*  barcode */
+.barcode-list {
+  margin-top: 10px;
+}
+
+.barcode-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+
+
+/* Hide everything by default when printing */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only show barcodes */
+  #printable-barcodes,
+  #printable-barcodes * {
+    visibility: visible;
+  }
+
+  /* Keep barcodes at the top-left */
+  #printable-barcodes {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+
+  /* Explicitly hide buttons/footer */
+  .no-print {
+    display: none !important;
+  }
+}
+
+
+
+
+
+
+/* login */
+
+.background {
+  background: linear-gradient(rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.4)),
+    url("./assets/bg.png") no-repeat center center / cover;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+}
+
+.login-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 80vh;
+  padding-top: 3rem;
+  gap: 2rem;
+  width: 100%;
+  max-width: 800px;
+}
+
+.role-selection {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  flex-grow: 1;
+  justify-content: center;
+  align-items: center;
+}
+
+.role-card {
+  background: rgb(0, 0, 0);
+  border-radius: 12px;
+  padding: 2rem 1rem;
+  text-align: center;
+  width: 180px;
+  cursor: pointer;
+  transition: transform 0.3s ease, border 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 2px solid transparent; 
+  border: #9b88e2 1px solid;
+}
+
+.role-card:hover {
+  transform: scale(1.05);
+  border: 2px solid #392870; 
+  box-shadow: 0 0 10px #392870aa;
+}
+
+.role-card:hover .role-image {
+  transform: scale(1.1);
+  transition: transform 0.3s ease;
+}
+
+.role-image {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+}
+
+.role-divider {
+  width: 120px;
+  height: 2px;
+  background-color: white;
+  border-radius: 1px;
+  margin: 0 auto;
+}
+
+.role-name {
+  color: white;
+  margin-top: 20px;
+  font-weight: 500;
+  font-family: "Playfair Display", serif;
+}
+
+/* Modal */
+.overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-modal {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 10px;
+  width: 350px;
+  text-align: center;
+  position: relative;
+}
+
+.login-modal label,
+.login-modal input {
+  text-align: left;
+  display: block;
+  width: 100%;
+}
+
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 15px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.subtitle {
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+label {
+  display: block;
+  text-align: left;
+  margin-top: 1rem;
+  font-weight: 500;
+}
+
+input {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+.forgot-link {
+  text-align: right;
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.login-btn {
+  background-color: #d4af37;
+  color: black;
+  font-weight: bold;
+  border: none;
+  padding: 10px;
+  margin-top: 1rem;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.exit-btn {
+  background-color: #ccc;
+  color: black;
+  border: none;
+  padding: 10px;
+  margin-top: 0.5rem;
+  width: 100%;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.branding {
+  text-align: center;
+}
+
+.brand-title {
+  font-family: "Cinzel", serif;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  color: #ffcc27;
+  margin: 0;
+}
+
+.brand-line {
+  width: 250px;
+  display: block;
+  color: #d3a920;
+}
+
+.brand-subtitle {
+  font-family: "Playfair Display", serif;
+  font-style: italic;
+  font-size: 1rem;
+  color: #d3a920;
+  margin: 0;
+}
+
+
+/* Container for checkbox + label */
+.login-modal .show-password-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Style the checkbox */
+.login-modal .show-password-container input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Style the label */
+.login-modal .show-password-container label {
+  font-size: 1rem;
+  cursor: pointer;
+  user-select: none;
+  color: #555; /* optional: softer color */
+  margin-top: 0;
+  margin-left: 3px;
+}
+
+
+
+/* issue form  */
+.issue-form-container {
+  max-width: 800px;
+  margin: 30px auto;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.form-title {
+  text-align: center;
+  font-size: 24px;
+  font-weight: bold;
+  color: #2b6cb0;
+  margin-bottom: 25px;
+}
+
+.issue-form {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+}
+
+.form-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.half {
+  flex: 1;
+}
+
+label {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #333;
+}
+
+input,
+button,
+textarea,
+select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+input:focus {
+  outline: none;
+  border-color: #3182ce;
+  box-shadow: 0 0 0 2px rgba(49, 130, 206, 0.2);
+}
+
+.input-with-button {
+  display: flex;
+  gap: 10px;
+}
+
+.input-with-button button {
+  background: #3182ce;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.input-with-button button:hover {
+  background: #2b6cb0;
+}
+
+.section-box {
+  border: 1px solid #eee;
+  border-radius: 10px;
+  background: #f9f9f9;
+  padding: 20px;
+}
+
+.section-box h2 {
+  margin-bottom: 12px;
+  font-size: 18px;
+  color: #444;
+}
+
+.info-box {
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 10px;
+  background: #fff;
+  margin-top: 4px;
+}
+
+.success {
+  color: #2f855a;
+  font-weight: 600;
+}
+
+.error {
+  color: #e53e3e;
+  font-weight: 600;
+}
+
+.placeholder {
+  color: #999;
+}
+
+.info-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.info-table th,
+.info-table td {
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+}
+
+.info-table th {
+  background: #f1f5f9;
+  text-align: left;
+  width: 30%;
+}
+
+.form-actions {
+  text-align: right;   /* align buttons to the right */
+}
+
+.form-actions button {
+  display: inline-block;   /* make them inline, not block */
+  width: auto;             /* prevent full-width stretching */
+  font-size: 1rem;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-left: 6px;
+}
+
+/* Confirm Loan button */
+.submit-btn {
+  background-color: #16a34a;
+  color: white;
+}
+.submit-btn:hover {
+  background-color: #15803d;
+}
+
+/* Cancel button */
+.cancel-btn {
+  background-color: #f12e2e;
+  color: #ffffff;
+}
+.cancel-btn:hover {
+  background-color: #ba0a0a;
+}
+
+
+.date-row {
+  display: flex;
+  gap: 20px; /* space between fields */
+}
+
+.date-field {
+  flex: 1; /* make them equal width */
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* circulation table design */
+.circulation-container {
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 15px;
+}
+
+.circulation-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.circulation-table th,
+.circulation-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.circulation-row {
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.circulation-row:hover {
+  background-color: #6552a349;
+}
+
+
+
+.circulation-tally {
+  display: flex;
+  gap: 1rem; /* spacing between cards */
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.tally-card {
+  flex: 1; /* equal width */
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tally-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.tally-borrowed {
+  background-color: #dbeafe; /* light blue */
+  color: #1e3a8a; /* dark blue text */
+}
+
+.tally-returned {
+  background-color: #dcfce7; /* light green */
+  color: #166534; /* dark green text */
+}
+
+.tally-overdue {
+  background-color: #fee2e2; /* light red */
+  color: #991b1b; /* dark red text */
+}
+
+.tally-renewed {
+  background-color: #fef9c3; /* light yellow */
+  color: #78350f; /* dark yellow text */
+}
+
+.tally-active {
+  border: 2px solid black;
 }

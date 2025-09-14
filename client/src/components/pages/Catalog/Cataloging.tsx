@@ -126,7 +126,7 @@ const Cataloging = () => {
               type="button"
               className="btn w-100"
               style={{ backgroundColor: "#F5C839" }}
-              // onClick={handleClick}
+              onClick={() => navigate("/cataloging/addbook")}
             >
               Add New
             </button>

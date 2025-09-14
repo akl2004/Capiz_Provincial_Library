@@ -16,8 +16,15 @@ return new class extends Migration
             $table->string('patron_id')->unique(); // custom ID for library
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('address')->nullable();
+            $table->string('barangay')->nullable();
+            $table->string('municipality');
+            $table->string('province');
             $table->string('number')->nullable(); // contact number
+            $table->string('status')->default('active');
+            $table->integer('age')->nullable();
+            $table->text('notes')->nullable();
+            $table->date('expiry_date')->nullable();
+            
             $table->timestamps();
         });
     }

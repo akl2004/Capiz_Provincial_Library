@@ -35,7 +35,7 @@ class BookController extends Controller
         'isbn' => 'nullable|string',
         'topical_subject' => 'nullable|string',
         'geographical_subject' => 'nullable|string',
-        'class_section' => 'required|string',
+        'section' => 'required|string',
         'dewey_decimal' => 'required|string',
         'author_number' => 'nullable|string',
         'source' => 'required|in:library,donated',

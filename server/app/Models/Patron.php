@@ -13,8 +13,14 @@ class Patron extends Model
         'patron_id',
         'name',
         'email',
-        'address',
+        'barangay',
+        'municipality',
+        'province',
         'number',
+        'status',
+        'age',
+        'notes',
+        'expiry_date',
     ];
 
     public static function generateUniquePatronId()
