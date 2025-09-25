@@ -62,7 +62,7 @@ const CopyInformation: React.FC = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <Link to={`/cataloging/${id}`} className="text-blue-500 underline">
+      <Link to={`/admin/cataloging/${id}`} className="text-blue-500 underline">
         ← Back to Book Details
       </Link>
 

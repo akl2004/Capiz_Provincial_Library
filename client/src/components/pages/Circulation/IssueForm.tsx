@@ -4,14 +4,19 @@ import { useNavigate } from "react-router-dom";
 
 interface Patron {
   id: number;
-  name: string;
   patron_id: string;
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  suffix?: string;
+  status: "Active" | "Deactivated" | "Blocked"; // add status
 }
 
 interface BookCopy {
   id: number;
   barcode: string;
   copy_number: number;
+  status: "available" | "borrowed"; // add status
   book: {
     title: string;
     call_number: string;
@@ -27,10 +32,51 @@ const IssueForm = () => {
 
   const [issueDate, setIssueDate] = useState<string>("");
   const [dueDate, setDueDate] = useState<string>("");
-
   const [loanDays, setLoanDays] = useState<number>(5);
 
+  const [modalMessage, setModalMessage] = useState<string | null>(null);
+
   const navigate = useNavigate();
+  
+  const ErrorModal = ({
+    message,
+    onClose,
+  }: {
+    message: string;
+    onClose: () => void;
+  }) => {
+    return (
+      <div
+        className="modal-overlay"
+        onClick={onClose} // close when clicking outside
+      >
+        <div
+          className="modal-box"
+          onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
+        >
+          <h2>⚠️ Error</h2>
+          <p>{message}</p>
+          <button
+            onClick={onClose}
+            className="close-btn"
+          >
+            x
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+
+
+  const fullName = [
+    patronInfo?.first_name,
+    patronInfo?.middle_name,
+    patronInfo?.last_name,
+    patronInfo?.suffix,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   useEffect(() => {
     AxiosInstance.get("/settings/loan-days")
@@ -62,10 +108,19 @@ const IssueForm = () => {
   const fetchBookByBarcode = () => {
     if (!barcode) return;
     AxiosInstance.get(`/books/copy/${barcode}`)
-      .then((res) => setBookInfo(res.data))
+      .then((res) => {
+        if (res.data.status === "borrowed") {
+          setBookInfo(null);
+          setModalMessage(
+            "This book copy is currently borrowed and unavailable."
+          );
+        } else {
+          setBookInfo(res.data);
+        }
+      })
       .catch(() => {
         setBookInfo(null);
-        alert("Book not found!");
+        setModalMessage("Book not found!");
       });
   };
 
@@ -77,15 +132,30 @@ const IssueForm = () => {
     }
 
     AxiosInstance.post("/circulations/borrow", {
-      patron_id: patronInfo?.patron_id,
+      patron_id: patronInfo.patron_id,
       book_copy_id: bookInfo.id,
     })
       .then(() => {
-        alert("Book issued successfully!");
-        navigate("/circulation");
+        alert("✅ Book issued successfully!"); // you can also convert this to a success modal later
+        navigate("/admin/circulation");
       })
-      .catch((err) => console.error(err));
+      .catch((err: any) => {
+        if (err.response) {
+          if (err.response.status === 403) {
+            setModalMessage(
+              "Cannot issue book: Patron is deactivated or blocked."
+            );
+          } else if (err.response.status === 400) {
+            setModalMessage("Cannot issue book: Book is already borrowed.");
+          } else {
+            setModalMessage("Something went wrong. Please try again.");
+          }
+        } else {
+          setModalMessage("Network error or server not reachable.");
+        }
+      });
   };
+
 
   return (
     <div className="issue-form-container">
@@ -150,7 +220,7 @@ const IssueForm = () => {
 
           <div className="info-box">
             {patronInfo ? (
-              <span className="success">{patronInfo.name}</span>
+              <span className="success">{fullName}</span>
             ) : patronId ? (
               <span className="error">❌ Patron not found</span>
             ) : (
@@ -187,7 +257,7 @@ const IssueForm = () => {
           <button
             type="button"
             className="cancel-btn"
-            onClick={() => navigate("/circulation")}
+            onClick={() => navigate("/admin/circulation")}
           >
             Cancel
           </button>
@@ -196,6 +266,13 @@ const IssueForm = () => {
           </button>
         </div>
       </form>
+      {/* Render the modal inside the return */}
+      {modalMessage && (
+        <ErrorModal
+          message={modalMessage}
+          onClose={() => setModalMessage(null)}
+        />
+      )}
     </div>
   );
 };

@@ -9,17 +9,35 @@ return new class extends Migration
     /**
      * Run the migrations.
      */
-   public function up(): void
+    public function up(): void
     {
         Schema::create('attendance', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->enum('gender', ['male', 'female', 'other']);
+            
+            // Optional if patron is registered
+            $table->unsignedBigInteger('patron_id')->nullable();
+
+            // Full name fields
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('suffix')->nullable();
+
+            // Address fields
+            $table->string('province');
+            $table->string('city');
+            $table->string('barangay');
+
+            // Contact / info
             $table->string('email')->nullable();
-            $table->string('address')->nullable();
+            $table->string('number')->nullable();
+            $table->string('affiliation')->nullable();
+
+            // Attendance details
             $table->string('purpose_of_visit');
             $table->timestamp('time_in')->nullable();
             $table->timestamp('time_out')->nullable();
+
             $table->timestamps();
         });
     }

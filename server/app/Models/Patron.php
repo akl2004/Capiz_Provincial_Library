@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Patron extends Model
 {
@@ -11,17 +12,23 @@ class Patron extends Model
 
     protected $fillable = [
         'patron_id',
-        'name',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'suffix',
         'email',
         'barangay',
-        'municipality',
+        'city',
         'province',
         'number',
         'status',
         'age',
+        'gender',
         'notes',
-        'expiry_date',
     ];
+
+    protected $appends = ['expiry_date', 'full_name'];
+
 
     public static function generateUniquePatronId()
     {
@@ -33,10 +40,44 @@ class Patron extends Model
         return $patronId;
     }
 
+    // Accessor for full name
+    public function getFullNameAttribute()
+    {
+        return trim("{$this->first_name} {$this->middle_name} {$this->last_name} {$this->suffix}");
+    }
+
+
+    // ✅ Expiry date is dynamically computed
+    public function getExpiryDateAttribute()
+    {
+        // Get years from settings, fallback to 3 years
+        $years = LibrarySetting::getValue('patron_expiration_years', 3);
+
+        // Add years to registration date
+        return $this->created_at
+            ? Carbon::parse($this->created_at)->addYears($years)->toDateString()
+            : null;
+    }
+
 
     // ✅ Relation: Patron has many circulations
     public function circulations()
     {
         return $this->hasMany(Circulation::class);
+    }
+
+    public function borrowedBooks()
+    {
+        return $this->circulations()->count();
+    }
+
+    public function returnedBooks()
+    {
+        return $this->circulations()->where('status', 'returned')->count();
+    }
+
+    public function totalFine()
+    {
+        return $this->circulations()->sum('fine'); // assuming 'fine' is a column in circulations
     }
 }

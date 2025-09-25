@@ -30,19 +30,22 @@ const RoleSelection: React.FC = () => {
     setLoggedInUser(user);
 
     if (user.role === "staff") {
-      navigate("/staffdashboard");
+      navigate("/staff/staffdashboard");
     } else if (user.role === "admin") {
-      navigate("/admindashboard");
+      navigate("/admin/admindashboard");
+    } else if (user.role === "guest" || user.role === "guest") {
+      navigate("/guestdashboard");
     }
   };
 
   const handleRoleClick = (role: string) => {
     if (role === "Guest") {
-      navigate("/admindashboard"); // Direct navigation
+      navigate("/guest/guestdashboard");
     } else {
-      setSelectedRole(role); // Open LoginModal for Staff/Admin
+      setSelectedRole(role);
     }
   };
+
 
   return (
     <div className="background">
@@ -67,7 +70,7 @@ const RoleSelection: React.FC = () => {
 
         {selectedRole && (
           <LoginModal
-            role={selectedRole}
+            role={selectedRole} // ✅ lowercase role
             onClose={() => setSelectedRole(null)}
             onLoginSuccess={handleLoginSuccess}
           />

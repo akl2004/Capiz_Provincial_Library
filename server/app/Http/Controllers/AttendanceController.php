@@ -12,10 +12,17 @@ class AttendanceController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'gender' => 'required|in:male,female,other',
+            'patron_id' => 'nullable|exists:patrons,id', // optional if linked to patrons table
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'suffix' => 'nullable|string|max:50',
+            'province' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'barangay' => 'required|string|max:255',
             'email' => 'nullable|email|max:255',
-            'address' => 'nullable|string|max:255',
+            'number' => 'nullable|string|max:50',
+            'affiliation' => 'nullable|string|max:255',
             'purpose_of_visit' => 'required|string|max:255',
         ]);
 
@@ -41,6 +48,12 @@ class AttendanceController extends Controller
         ]);
 
         return response()->json($attendance);
+    }
+
+    // Attendance for today
+    public function today()
+    {
+        return Attendance::whereDate('time_in', today())->get();
     }
 
     // List all attendance records

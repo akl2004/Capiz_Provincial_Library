@@ -16,7 +16,7 @@ return new class extends Migration
 
             // Bibliographic info
             $table->string('title');
-            $table->string('author')->nullable(); // multiple authors
+            $table->string('author')->nullable();
             $table->string('editor')->nullable();
             $table->string('other_author_editor')->nullable(); // other author + editor
             $table->string('edition')->nullable();

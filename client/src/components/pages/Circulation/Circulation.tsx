@@ -6,7 +6,10 @@ interface Circulation {
   id: number;
   patron: {
     patron_id: number;
-    name: string;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    suffix?: string;
   };
   book_copy: {
     id: number;
@@ -53,8 +56,16 @@ const CirculationPage = () => {
   };
 
   const filteredRecords = records.filter((rec) => {
-    const matchesSearch =
-      rec.patron?.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = [
+      rec.patron?.first_name,
+      rec.patron?.middle_name,
+      rec.patron?.last_name,
+      rec.patron?.suffix,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
       rec.book_copy?.book?.title
         .toLowerCase()
         .includes(searchTerm.toLowerCase()) ||
@@ -81,7 +92,9 @@ const CirculationPage = () => {
     <>
       <div>
         <h1 className="text-2xl font-bold">Circulation Records</h1>
-        <p>Manage book borrowings, returns, and renewals.</p>
+        <p>
+          <i>Manage book borrowings, returns, and renewals.</i>
+        </p>
       </div>
 
       {/* Tally Panel */}
@@ -121,7 +134,7 @@ const CirculationPage = () => {
           <div className="col-md-4">
             <button
               className="btn btn-primary w-100"
-              onClick={() => navigate("/circulation/issue")}
+              onClick={() => navigate("/admin/circulation/issue")}
             >
               ➕ Issue Book
             </button>
@@ -158,7 +171,17 @@ const CirculationPage = () => {
                       onClick={() => toggleRow(rec.id)}
                     >
                       <td>{rec.patron?.patron_id}</td>
-                      <td>{rec.patron?.name}</td>
+                      <td>
+                        {[
+                          rec.patron?.first_name,
+                          rec.patron?.middle_name,
+                          rec.patron?.last_name,
+                          rec.patron?.suffix,
+                        ]
+                          .filter(Boolean) // remove null/empty parts
+                          .join(" ")}
+                      </td>
+
                       <td>{rec.book_copy?.book?.title}</td>
                       <td>{rec.book_copy?.barcode}</td>
                       <td>{rec.issue_date}</td>

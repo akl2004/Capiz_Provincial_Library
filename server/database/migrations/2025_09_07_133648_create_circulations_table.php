@@ -17,12 +17,13 @@ return new class extends Migration {
             // Circulation details
             $table->date('issue_date');
             $table->date('due_date'); // default = issue_date + 5 days (handled in controller)
-            $table->date('renewal_date')->nullable();
+            $table->date('renewal_date')->nullable(); // last renewal date
+            $table->unsignedInteger('renewal_count')->default(0); // ✅ track how many times renewed
             $table->integer('overdue_by')->default(0); // in days
             $table->decimal('fine', 8, 2)->default(0.00);
             $table->date('date_returned')->nullable();
 
-            $table->enum('status', ['available', 'borrowed', 'returned', 'lost'])->default('available');
+            $table->enum('status', ['available', 'borrowed', 'returned', 'lost', 'overdue'])->default('available');
 
             $table->timestamps();
         });

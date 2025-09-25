@@ -659,15 +659,6 @@ const BookForm: React.FC = () => {
 
             <h2 className="text-xl font-semibold mb-4">Generated Barcodes</h2>
 
-            {/* <div className="barcode-list">
-              {bookCopies.map((c) => (
-                <div key={c.copy_number} className="barcode-item">
-                  <span>Copy {c.copy_number}</span>
-                  <Barcode value={c.barcode} />
-                </div>
-              ))}
-            </div> */}
-
             <div id="printable-barcodes">
               {bookCopies.map((c) => (
                 <div

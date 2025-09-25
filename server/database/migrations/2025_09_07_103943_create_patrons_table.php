@@ -14,16 +14,19 @@ return new class extends Migration
         Schema::create('patrons', function (Blueprint $table) {
             $table->id();
             $table->string('patron_id')->unique(); // custom ID for library
-            $table->string('name');
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('suffix')->nullable();
             $table->string('email')->unique();
             $table->string('barangay')->nullable();
-            $table->string('municipality');
+            $table->string('city');
             $table->string('province');
             $table->string('number')->nullable(); // contact number
             $table->string('status')->default('active');
             $table->integer('age')->nullable();
+            $table->string('gender', 10)->nullable();
             $table->text('notes')->nullable();
-            $table->date('expiry_date')->nullable();
             
             $table->timestamps();
         });

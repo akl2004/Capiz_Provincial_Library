@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AxiosInstance from "../../../AxiosInstance";
 import { useNavigate } from "react-router-dom";
-import LoadingSpinner from "../../../components/LoadingSpinner"; // <-- import spinner
+import LoadingSpinner from "../../../components/LoadingSpinner";
 
 interface Book {
   id: number;
@@ -10,6 +10,10 @@ interface Book {
   edition: string;
   year: string | number;
   classification: string;
+  image?: string;
+  material_type?: string;
+  subjects?: string[];
+  section?: string;
 }
 
 const Cataloging = () => {
@@ -18,6 +22,7 @@ const Cataloging = () => {
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
+  const [viewMode, setViewMode] = useState<"image" | "list">("image");
 
   const deweyMap: { [key: string]: string } = {
     "000": "General Works",
@@ -34,7 +39,7 @@ const Cataloging = () => {
 
   const getDeweyCategory = (dewey: string): string => {
     if (!dewey) return "N/A";
-    const mainClass = dewey.substring(0, 1) + "00"; // e.g. "3" → "300"
+    const mainClass = dewey.substring(0, 1) + "00";
     return deweyMap[mainClass] || "Unknown";
   };
 
@@ -50,20 +55,25 @@ const Cataloging = () => {
     }
 
     const lowerSearch = searchTerm.toLowerCase();
-
     const filtered = books.filter((book) => {
       const title = book.title?.toLowerCase() || "";
       const contributor = book.contributor?.toLowerCase() || "";
       const edition = book.edition?.toLowerCase() || "";
       const year = book.year?.toString() || "";
       const classification = book.classification?.toLowerCase() || "";
+      const material_type = book.material_type?.toLowerCase() || "";
+      const subjects = book.subjects?.join(", ").toLowerCase() || "";
+      const section = book.section?.toLowerCase() || "";
 
       return (
         title.includes(lowerSearch) ||
         contributor.includes(lowerSearch) ||
         edition.includes(lowerSearch) ||
         year.includes(lowerSearch) ||
-        classification.includes(lowerSearch)
+        classification.includes(lowerSearch) ||
+        material_type.includes(lowerSearch) ||
+        subjects.includes(lowerSearch) ||
+        section.includes(lowerSearch)
       );
     });
 
@@ -75,29 +85,28 @@ const Cataloging = () => {
       setIsLoading(true);
 
       const response = await AxiosInstance.get("/books");
-
       const booksData = Array.isArray(response.data)
         ? response.data
-        : response.data.data; // fallback if wrapped in { data: [...] }
+        : response.data.data;
 
-      const formattedBooks = booksData.map((book: any) => {
-        // Use author if exists, otherwise fallback to other_author_editor
-        const contributor =
-          book.author && book.author.trim() !== ""
+      const formattedBooks = booksData.map((book: any) => ({
+        id: book.id,
+        title: book.title,
+        contributor:
+          book.author?.trim() !== ""
             ? book.author
-            : book.other_author_editor || "N/A";
-
-        return {
-          id: book.id,
-          title: book.title,
-          contributor: contributor,
-          edition: book.edition,
-          year: book.copyright || "N/A",
-          classification: getDeweyCategory(book.dewey_decimal),
-        };
-      });
+            : book.other_author_editor || "N/A",
+        edition: book.edition || "N/A",
+        year: book.copyright || "N/A",
+        classification: getDeweyCategory(book.dewey_decimal),
+        image: book.image || "",
+        material_type: book.material_type || "N/A",
+        subjects: book.subjects || [],
+        section: book.section || "N/A",
+      }));
 
       setBooks(formattedBooks);
+      setFilteredBooks(formattedBooks); // <-- important to show books initially
     } catch (error) {
       console.error("Error fetching books:", error);
     } finally {
@@ -106,53 +115,143 @@ const Cataloging = () => {
   };
 
   return (
-    <>
-      <div>
-        <h1 className="text-2xl font-bold">Cataloging Page</h1>
-        <p>Welcome to the cataloging page!</p>
-      </div>
-      <div className="catalog-container">
-        <form className="row g-2" onSubmit={(e) => e.preventDefault()}>
-          <div className="col-md-8 position-relative">
+    <div className="catalog-container">
+      {/* Header: Title + Search + View + Add */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h1 className="text-xl font-semibold mb-0">Cataloging Page</h1>
+          <p className="mb-0">
+            <i>Welcome to the cataloging page!</i>
+          </p>
+        </div>
+
+        <div className="d-flex gap-2 align-items-center">
+          <div className="position-relative" style={{ maxWidth: "300px" }}>
+            <span
+              className="position-absolute top-50 translate-middle-y ps-2"
+              style={{ left: "10px", color: "#6c757d" }}
+            >
+              <i className="bi bi-search"></i>
+            </span>
             <input
-              className="form-control text-center ps-5 pe-5"
+              className="form-control ps-5 pe-3"
               placeholder="SEARCH BOOK"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div className="col-md-4">
+
+          <div className="btn-group" role="group">
             <button
               type="button"
-              className="btn w-100"
-              style={{ backgroundColor: "#F5C839" }}
-              onClick={() => navigate("/cataloging/addbook")}
+              className={`btn ${
+                viewMode === "image" ? "btn-secondary" : "btn-outline-secondary"
+              }`}
+              onClick={() => setViewMode("image")}
             >
-              Add New
+              <i className="bi bi-list-task"></i>
+            </button>
+            <button
+              type="button"
+              className={`btn ${
+                viewMode === "list" ? "btn-secondary" : "btn-outline-secondary"
+              }`}
+              onClick={() => setViewMode("list")}
+            >
+              <i className="bi bi-list"></i>
             </button>
           </div>
-        </form>
-        <div className="mt-3">
-          <table className="custom-table">
+
+          <button
+            type="button"
+            className="btn"
+            style={{ backgroundColor: "#F5C839" }}
+            onClick={() => navigate("/admin/cataloging/addbook")}
+          >
+            Add New
+          </button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="mt-3">
+        {isLoading ? (
+          <div className="text-center py-10">
+            <LoadingSpinner message="Loading books..." />
+          </div>
+        ) : viewMode === "image" ? (
+          filteredBooks.length === 0 ? (
+            <p className="text-center">No books found.</p>
+          ) : (
+            filteredBooks.map((book) => (
+              <div
+                key={book.id}
+                className="card mb-3 p-3"
+                onClick={() => navigate(`/admin/cataloging/${book.id}`)}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="row">
+                  <div className="col-md-2">
+                    <img
+                      src={book.image || "/src/assets/cover_placeholder.jpg"}
+                      alt={book.title}
+                      className="img-fluid"
+                      style={{
+                        maxHeight: "200px",
+                        objectFit: "contain",
+                        width: "80%",
+                      }}
+                    />
+                  </div>
+                  <div className="description col-md-9">
+                    <p className="mb-0">
+                      <strong>Material:</strong> {book.material_type}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Title:</strong> {book.title}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Author:</strong> {book.contributor}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Edition:</strong> {book.edition}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Year:</strong> {book.year}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Subjects:</strong>{" "}
+                      {book.subjects?.join(", ") || "N/A"}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Section:</strong> {book.section}
+                    </p>
+                    <p className="mb-0">
+                      <strong>Classification:</strong> {book.classification}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ))
+          )
+        ) : (
+          <table className="custom-table w-100 mt-3">
             <thead>
               <tr>
+                <th>Material</th>
                 <th>Title</th>
                 <th>Contributor</th>
                 <th>Edition</th>
                 <th>Year</th>
+                <th>Subjects</th>
+                <th>Section</th>
                 <th>Classification</th>
               </tr>
             </thead>
             <tbody>
-              {isLoading ? (
+              {filteredBooks.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-4">
-                    <LoadingSpinner message="Loading books..." />
-                  </td>
-                </tr>
-              ) : filteredBooks.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="text-center">
+                  <td colSpan={8} className="text-center">
                     No books found.
                   </td>
                 </tr>
@@ -161,21 +260,25 @@ const Cataloging = () => {
                   <tr
                     key={book.id}
                     className="book-row"
-                    onClick={() => navigate(`/cataloging/${book.id}`)}
+                    onClick={() => navigate(`/admin/cataloging/${book.id}`)}
+                    style={{ cursor: "pointer" }}
                   >
+                    <td>{book.material_type}</td>
                     <td>{book.title}</td>
                     <td>{book.contributor}</td>
                     <td>{book.edition}</td>
                     <td>{book.year}</td>
+                    <td>{book.subjects?.join(", ") || "N/A"}</td>
+                    <td>{book.section}</td>
                     <td>{book.classification}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
-        </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

@@ -24,62 +24,59 @@ class CirculationSeeder extends Seeder
             ['name' => 'Bob Smith', 'email' => 'bob@example.com']
         );
 
-        // Create sample book (include required fields like section/dewey if your migration requires them)
+        // Create sample book
         $book = Book::firstOrCreate(
             ['title' => 'Introduction to AI'],
             [
                 'author'        => 'John McCarthy',
-                'call_number'   => "GC\n006.3\nM123\n1999", // follow your call-number style
-                'dewey_decimal' => '006.3',       // include if migration requires
+                'call_number'   => "GC\n006.3\nM123\n1999",
+                'dewey_decimal' => '006.3',
                 'author_number' => 'M123',
                 'section'       => 'Gen. Circulation',
                 'copyright'     => '1999'
             ]
         );
 
-        // Determine starting accession (numeric)
+        // Starting accession
         $lastCopy = BookCopy::orderBy('id', 'desc')->first();
         $startAccession = $lastCopy ? (int) $lastCopy->accession_number : 0;
 
-        // Number of copies for this book
         $numCopies = 2;
 
         for ($i = 1; $i <= $numCopies; $i++) {
-            // next accession — padded with leading zeros (5 digits)
             $accessionNumber = str_pad($startAccession + $i, 5, '0', STR_PAD_LEFT);
-
-            // unique barcode (adjust as you like)
             $barcode = 'BC' . str_pad((string) (time() + $i), 6, '0', STR_PAD_LEFT);
 
-            // create copy (include accession_number so the DB won't complain)
             BookCopy::firstOrCreate(
                 ['barcode' => $barcode],
                 [
-                    'book_id' => $book->id,
-                    'copy_number' => $i,
+                    'book_id'          => $book->id,
+                    'copy_number'      => $i,
                     'accession_number' => $accessionNumber,
-                    'status' => 'available',
-                    // optional copy fields
-                    'material_type' => 'Book',
-                    'source' => 'donated',
+                    'status'           => 'available',
+                    'material_type'    => 'Book',
+                    'source'           => 'donated',
                     'location_of_book' => 'Main Library Shelf A1',
                 ]
             );
         }
 
-        // Fetch the copies we created (using book->copies relation if available)
+        // Grab two copies
         $copies = BookCopy::where('book_id', $book->id)->orderBy('id')->take(2)->get();
         $copy1 = $copies->get(0);
         $copy2 = $copies->get(1);
 
-        // Circulation examples
+        // Circulation samples
         if ($copy1) {
             Circulation::create([
-                'book_copy_id' => $copy1->id,
-                'patron_id'    => $patron1->id,
-                'issue_date'   => Carbon::now()->subDays(3),
-                'due_date'     => Carbon::now()->addDays(2),
-                'status'       => 'borrowed',
+                'book_copy_id'  => $copy1->id,
+                'patron_id'     => $patron1->id,
+                'issue_date'    => Carbon::now()->subDays(3),
+                'due_date'      => Carbon::now()->addDays(2),
+                'status'        => 'borrowed',
+                'renewal_count' => 0,
+                'overdue_by'    => 0,
+                'fine'          => 0,
             ]);
         }
 
@@ -91,8 +88,10 @@ class CirculationSeeder extends Seeder
                 'due_date'       => Carbon::now()->subDays(5),
                 'date_returned'  => Carbon::now()->subDays(2),
                 'status'         => 'returned',
-                'fine'           => 30,
+                'renewal_count'  => 1,
+                'renewal_date'   => Carbon::now()->subDays(7),
                 'overdue_by'     => 3,
+                'fine'           => 30,
             ]);
         }
     }

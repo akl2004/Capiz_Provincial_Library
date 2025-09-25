@@ -79,7 +79,7 @@ const BookDetails: React.FC = () => {
     [book.series_name, book.volume].filter(Boolean).join("; ") || "N/A";
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <Link to="/cataloging" className="text-blue-500 underline">
+      <Link to="/admin/cataloging" className="text-blue-500 underline">
         ← Back to Catalog
       </Link>
 
@@ -155,7 +155,7 @@ const BookDetails: React.FC = () => {
                 <tr
                   key={copy.id}
                   onClick={() =>
-                    navigate(`/cataloging/${book.id}/copies/${copy.id}`)
+                    navigate(`/admin/cataloging/${book.id}/copies/${copy.id}`)
                   }
                   className="book-row"
                 >

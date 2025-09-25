@@ -12,10 +12,17 @@ class Attendance extends Model
     protected $table = 'attendance';
 
     protected $fillable = [
-        'name',
-        'gender',
+        'patron_id',
+        'first_name',
+        'middle_name',
+        'last_name',
+        'suffix',
+        'province',
+        'city',
+        'barangay',
+        'number',
         'email',
-        'address',
+        'affiliation',
         'purpose_of_visit',
         'time_in',
         'time_out',

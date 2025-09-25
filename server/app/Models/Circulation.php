@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
 
 class Circulation extends Model
 {
@@ -19,6 +20,7 @@ class Circulation extends Model
         'fine',
         'date_returned',
         'status',
+        'renewal_count',
     ];
 
     protected $dates = [
@@ -37,5 +39,11 @@ class Circulation extends Model
     public function patron()
     {
         return $this->belongsTo(Patron::class);
+    }
+
+    // ✅ Helper: check if this circulation is overdue
+    public function getIsOverdueAttribute(): bool
+    {
+        return $this->status === 'borrowed' && $this->due_date instanceof Carbon && $this->due_date->isPast();
     }
 }

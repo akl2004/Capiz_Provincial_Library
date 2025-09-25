@@ -7,6 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class LibrarySetting extends Model
 {
     protected $fillable = ['key', 'value'];
+    protected $casts = [
+    'value' => 'integer',
+];
 
     public static function getValue($key, $default = null)
     {

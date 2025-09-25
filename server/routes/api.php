@@ -29,10 +29,11 @@ Route::get('/books', [BookController::class, 'index']);    //fetch all books
 Route::post('/books', [BookController::class, 'store']);   // add new book
 Route::get('/books/{id}', [BookController::class, 'show']);  // fetch single book
 
-// ✅ Extra Patron routes FIRST
+// ✅ Extra Patron routes
 Route::get('/patrons/generate-id', [PatronController::class, 'generatePatronId']);
-// Route::get('/patron-id/{patronId}', [PatronController::class, 'getByPatronId']);
 Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
+Route::get('/patrons/{id}/stats', [PatronController::class, 'stats']);
+Route::patch('/patrons/{id}/deactivate', [PatronController::class, 'deactivate']);
 
 // ✅ Standard Patron routes
 Route::get('/patrons', [PatronController::class, 'index']);
@@ -51,6 +52,8 @@ Route::get('/circulations/{id}', [CirculationController::class, 'show']);    // 
 Route::put('/circulations/{id}/renew', [CirculationController::class, 'renew']); // renew circulation
 Route::put('/circulations/{id}/return', [CirculationController::class, 'returnBook']); // return a book
 Route::put('/circulations/{id}/mark-lost', [CirculationController::class, 'markLost']); // mark book as lost
+Route::get('/patrons/{id}/transactions', [CirculationController::class, 'patronTransactions']); // fetch patrons transaction
+
 
 Route::get('/books/copy/{barcode}', [BookController::class, 'getByBarcode']);
 
@@ -60,12 +63,25 @@ Route::get('/books/copy/{barcode}', [BookController::class, 'getByBarcode']);
 Route::get('/attendances', [AttendanceController::class, 'index']);
 Route::post('/attendances', [AttendanceController::class, 'store']);   // time in
 Route::post('/attendances/{id}/timeout', [AttendanceController::class, 'timeOut']); // time out
+Route::get('/attendances/today', [AttendanceController::class, 'today']); // daily attendance
 
 
 
 // Settings routes
+// Loan Days
 Route::get('/settings/loan-days', [LibrarySettingController::class, 'getLoanDays']);
 Route::post('/settings/loan-days', [LibrarySettingController::class, 'updateLoanDays']);
+// Expiration Years
+Route::get('/settings/expiration-years', [LibrarySettingController::class, 'getExpirationYears']);
+Route::post('/settings/expiration-years', [LibrarySettingController::class, 'updateExpirationYears']);
+// Fine Per Day
+Route::get('/settings/fine-per-day', [LibrarySettingController::class, 'getFinePerDay']);
+Route::post('/settings/fine-per-day', [LibrarySettingController::class, 'updateFinePerDay']);
+// Renewal Limit
+Route::get('/settings/renewal-limit', [LibrarySettingController::class, 'getRenewalLimit']);
+Route::post('/settings/renewal-limit', [LibrarySettingController::class, 'updateRenewalLimit']);
+
+
 
 
 // Route::get('/patrons/by-id/{patron_id}', [PatronController::class, 'getByPatronId']);

@@ -10,41 +10,49 @@ use Illuminate\Support\Facades\Auth;
 class AuthController extends Controller
 {
     public function login(Request $request)
-    {
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-        ]);
+{
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required',
+        'role' => 'required|string|in:admin,staff,guest',
+    ]);
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json(['message' => 'Invalid credentials'], 401);
-        }
-
-        $user = Auth::user();
-
-        // Only allow active or onleave staff/admin
-        if ($user->status === 'inactive') {
-            return response()->json(['message' => 'Your account is inactive'], 403);
-        }
-
-        // Create token
-        $token = $user->createToken('authToken')->plainTextToken;
-
-        // Log login
-        LoginLog::create([
-            'user_id' => $user->id,
-            'logged_in_at' => now(),
-            'ip_address' => $request->ip(),
-        ]);
-
-        return response()->json([
-            'message' => 'Login successful',
-            'token' => $token,
-            'role' => $user->role,
-            'name' => $user->name,
-            'status' => $user->status,
-        ], 200);
+    if (!Auth::attempt($request->only('email', 'password'))) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
     }
+
+    $user = Auth::user();
+
+    // ✅ Check role matches the selected role
+    if (strtolower($user->role) !== strtolower($request->role)) {
+        return response()->json(['message' => 'Unauthorized role'], 403);
+    }
+
+
+    // Only allow active or onleave staff/admin
+    if ($user->status === 'inactive') {
+        return response()->json(['message' => 'Your account is inactive'], 403);
+    }
+
+    // Create token
+    $token = $user->createToken('authToken')->plainTextToken;
+
+    // Log login
+    LoginLog::create([
+        'user_id' => $user->id,
+        'logged_in_at' => now(),
+        'ip_address' => $request->ip(),
+    ]);
+
+    return response()->json([
+        'message' => 'Login successful',
+        'token' => $token,
+        'role' => $user->role,
+        'name' => $user->name,
+        'status' => $user->status,
+    ], 200);
+}
+
 
     public function logout(Request $request)
     {

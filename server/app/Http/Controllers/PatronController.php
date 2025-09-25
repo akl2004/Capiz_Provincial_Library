@@ -2,43 +2,61 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LibrarySetting;
 use App\Models\Patron;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class PatronController extends Controller
 {
     public function index()
     {
-        return Patron::all();
+        // Get expiration years from settings
+        $expirationYears = (int) LibrarySetting::getValue('patron_expiration_years', 3);
+
+        // Fetch all patrons and add a dynamic expiration_date field
+        $patrons = Patron::all()->map(function ($patron) use ($expirationYears) {
+            $createdAt = $patron->created_at ?? now(); // fallback to now if null
+            $patron->expiration_date = Carbon::parse($createdAt)->addYears($expirationYears);
+            return $patron;
+        });
+
+        return response()->json($patrons);
     }
 
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'patron_id' => 'nullable|string|unique:patrons,patron_id', // allow null
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:patrons,email',
-            'barangay' => 'nullable|string|max:255',
-            'municipality' => 'required|string|max:255',
-            'province' => 'required|string|max:255',
-            'number' => 'nullable|string|max:20',
-            'status' => 'nullable|string|max:50',
-            'age' => 'nullable|integer|min:0',
-            'notes' => 'nullable|string',
-            'expiry_date' => 'nullable|date',
+            'patron_id'   => 'nullable|string|unique:patrons,patron_id',
+            'first_name'  => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name'   => 'required|string|max:255',
+            'suffix'      => 'nullable|string|max:50',
+            'email'       => 'required|email|unique:patrons,email',
+            'barangay'    => 'nullable|string|max:255',
+            'city'        => 'required|string|max:255',
+            'province'    => 'required|string|max:255',
+            'number'      => 'nullable|string|max:20',
+            'status'      => 'nullable|string|max:50',
+            'age'         => 'nullable|integer|min:0',
+            'gender'      => 'nullable|string|max:10',
+            'notes'       => 'nullable|string',
         ]);
 
-        // If patron_id not provided → auto-generate
         if (empty($validated['patron_id'])) {
             $validated['patron_id'] = Patron::generateUniquePatronId();
         }
 
         $patron = Patron::create($validated);
 
+        // Add expiration_date dynamically
+        $createdAt = $patron->created_at ?? now();
+        $patron->expiration_date = Carbon::parse($createdAt)
+            ->addYears((int) LibrarySetting::getValue('patron_expiration_years', 3));
+
+
         return response()->json($patron, 201);
     }
-
 
     public function show($id)
     {
@@ -50,12 +68,19 @@ class PatronController extends Controller
         $patron = Patron::findOrFail($id);
 
         $validated = $request->validate([
-            'name' => 'sometimes|string|max:255',
-            'email' => 'sometimes|email|unique:patrons,email,' . $id,
-            'barangay' => 'nullable|string|max:255',
-            'municipality' => 'sometimes|string|max:255',
-            'province' => 'sometimes|string|max:255',
-            'number' => 'nullable|string|max:20',
+            'first_name'  => 'sometimes|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name'   => 'sometimes|string|max:255',
+            'suffix'      => 'nullable|string|max:50',
+            'email'       => 'sometimes|email|unique:patrons,email,' . $id,
+            'barangay'    => 'nullable|string|max:255',
+            'city'        => 'sometimes|string|max:255',
+            'province'    => 'sometimes|string|max:255',
+            'number'      => 'nullable|string|max:20',
+            'status'      => 'nullable|string|max:50',
+            'age'         => 'nullable|integer|min:0',
+            'gender'      => 'nullable|string|max:10',
+            'notes'       => 'nullable|string',
         ]);
 
         $patron->update($validated);
@@ -71,7 +96,6 @@ class PatronController extends Controller
         return response()->json(['message' => 'Patron deleted']);
     }
 
-    // ✅ Fetch by patron_id (like P00123)
     public function getByPatronId($patronId)
     {
         $patron = Patron::where('patron_id', $patronId)->first();
@@ -83,7 +107,6 @@ class PatronController extends Controller
         return response()->json($patron);
     }
 
-    // Generate a unique Patron ID
     public function generatePatronId()
     {
         try {
@@ -96,6 +119,37 @@ class PatronController extends Controller
             ], 500);
         }
     }
+
+    public function stats($id)
+    {
+        $patron = Patron::with('circulations')->findOrFail($id);
+
+        $stats = [
+            'borrowedBooks' => $patron->circulations()->count(),
+            'returnedBooks' => $patron->circulations()->where('status', 'returned')->count(),
+            'totalFine' => $patron->circulations()->sum('fine'),
+            'overdueBooks' => $patron->circulations()
+            ->where('status', '!=', 'returned')
+            ->where('due_date', '<', now())
+            ->count(),
+            'history' => $patron->circulations()->get() // full circulation records
+        ];
+
+        return response()->json($stats);
+    }
+
     
+    public function deactivate($id)
+    {
+        $patron = Patron::findOrFail($id);
+
+        $patron->status = 'Deactivated';
+        $patron->save();
+
+        return response()->json([
+            'message' => 'Patron account deactivated successfully',
+            'patron' => $patron
+        ]);
+    }
 
 }

@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from "react";
-import AdminSidebar from "./AdminSidebar";
-import Header from "./Header";
-import AxiosInstance from "../../AxiosInstance";
+import AxiosInstance from "../../../AxiosInstance";
+import StaffSidebar from "./StaffSidebar";
+import Header from "../Admin/Header";
 
-
-interface AdminLayoutProps {
+interface StaffLayoutProps {
   content: React.ReactNode;
 }
 
-const AdminLayout = ({ content }: AdminLayoutProps) => {
+const StaffLayout = ({ content }: StaffLayoutProps) => {
   const [user, setUser] = useState<{
     name: string;
     avatar: string;
@@ -33,7 +32,7 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
   return (
     <div className="admin-layout">
       <div className="admin-sidebar">
-        <AdminSidebar />
+        <StaffSidebar />
       </div>
 
       <div className="admin-main">
@@ -41,7 +40,11 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
           user={user || { name: "Guest", avatar: "./src/assets/lib-logo.png" }}
           onLogout={() => {
             localStorage.removeItem("authToken");
-            setUser({ name: "Guest", avatar: "./src/assets/lib-logo.png", role: "guest" });
+            setUser({
+              name: "Guest",
+              avatar: "./src/assets/lib-logo.png",
+              role: "guest",
+            });
           }}
         />
 
@@ -51,4 +54,4 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
   );
 };
 
-export default AdminLayout;
+export default StaffLayout;
