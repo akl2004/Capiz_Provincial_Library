@@ -10,6 +10,7 @@ use App\Http\Controllers\CirculationController;
 use App\Http\Controllers\DropdownController;
 use App\Http\Controllers\LibrarySettingController;
 use App\Http\Controllers\PatronController;
+use App\Http\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -19,6 +20,15 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 
 // Fetch the logged-in user
 Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'user']);
+
+// Staff/Accounts routes (protected with sanctum)
+Route::middleware('auth:sanctum')->prefix('staff')->group(function () {
+    Route::get('/', [StaffController::class, 'index']);       // List all staff
+    Route::post('/', [StaffController::class, 'store']);      // Add new staff
+    Route::put('/{id}', [StaffController::class, 'update']); // Update staff
+    Route::delete('/{id}', [StaffController::class, 'destroy']); // Delete staff
+    Route::get('/{id}', [StaffController::class, 'show']); // Get single staff
+});
 
 
 // Dropdown options
@@ -40,8 +50,7 @@ Route::get('/patrons', [PatronController::class, 'index']);
 Route::post('/patrons', [PatronController::class, 'store']);
 Route::get('/patrons/{id}', [PatronController::class, 'show']);
 Route::put('/patrons/{id}', [PatronController::class, 'update']);
-Route::delete('/patrons/{id}', [PatronController::class, 'destroy']);
-    
+Route::delete('/patrons/{id}', [PatronController::class, 'destroy']);  
 
 
 // Circulation routes
@@ -54,9 +63,7 @@ Route::put('/circulations/{id}/return', [CirculationController::class, 'returnBo
 Route::put('/circulations/{id}/mark-lost', [CirculationController::class, 'markLost']); // mark book as lost
 Route::get('/patrons/{id}/transactions', [CirculationController::class, 'patronTransactions']); // fetch patrons transaction
 
-
 Route::get('/books/copy/{barcode}', [BookController::class, 'getByBarcode']);
-
 
 
 // Attendance routes
@@ -65,6 +72,7 @@ Route::post('/attendances', [AttendanceController::class, 'store']);   // time i
 Route::post('/attendances/{id}/timeout', [AttendanceController::class, 'timeOut']); // time out
 Route::get('/attendances/today', [AttendanceController::class, 'today']); // daily attendance
 
+Route::get('/patrons/{id}/activity-logs', [AttendanceController::class, 'patronLogs']);
 
 
 // Settings routes

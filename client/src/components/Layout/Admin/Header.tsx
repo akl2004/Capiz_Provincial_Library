@@ -4,8 +4,13 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 
 interface HeaderProps {
   user: {
-    name: string;
+    first_name: string;
+    middle_name?: string | null;
+    last_name: string;
+    suffix?: string | null;
     avatar: string;
+    role: string;
+    name?: string | null;
   };
   onLogout: () => void;
 }
@@ -39,12 +44,6 @@ const Header = ({ user, onLogout }: HeaderProps) => {
   const breadcrumbPathnames = pathnames.filter(
     (x) => x !== "admin" && x !== "guest"
   );
-
-  // Build link using the **original pathnames** so URL remains correct
-  // const getPathLink = (index: number) => {
-  //   return "/" + pathnames.slice(0, index + 1).join("/");
-  // };
-
 
   const breadcrumbNameMap: Record<string, string> = {
     admindashboard: "Dashboard",
@@ -155,7 +154,7 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               className="rounded-circle me-2"
               style={{ width: "32px", height: "32px" }}
             />
-            <span>{user.name}</span>
+            <span>{user.name || "Guest"}</span>
           </button>
 
           {dropdownOpen && (

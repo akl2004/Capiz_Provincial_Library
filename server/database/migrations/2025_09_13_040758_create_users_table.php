@@ -13,11 +13,22 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->string('name');
+
+            // Name fields
+            $table->string('first_name');
+            $table->string('middle_name')->nullable();
+            $table->string('last_name');
+            $table->string('suffix')->nullable();
+
+            // Contact & login
+            $table->string('phone_number')->nullable();
             $table->string('email')->unique();
             $table->string('password');
+
+            // Role and status
             $table->enum('role', ['staff', 'admin'])->default('staff');
             $table->enum('status', ['active', 'onleave', 'inactive'])->default('active');
+
             $table->timestamps();
         });
     }

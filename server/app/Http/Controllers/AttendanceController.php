@@ -61,4 +61,19 @@ class AttendanceController extends Controller
     {
         return Attendance::orderBy('created_at', 'desc')->get();
     }
+
+    // Get all activity logs for a specific patron
+    public function patronLogs($id)
+    {
+        $logs = Attendance::where('patron_id', $id)
+            ->orderBy('time_in', 'desc')
+            ->get();
+
+        if ($logs->isEmpty()) {
+            return response()->json(['message' => 'No activity logs found for this patron'], 404);
+        }
+
+        return response()->json($logs);
+    }
+
 }

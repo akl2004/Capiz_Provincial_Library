@@ -175,7 +175,7 @@
 
 
 /* Copies Info Container */
-.copies-info, .transactions-page {
+.copies-info, .transactions-page, .user-page, .patron-profile, .staff-profile {
   background: #ffffff;
   margin-top: 1.5rem;
   padding: 1.5rem;
@@ -184,9 +184,16 @@
   font-family: 'Inter', sans-serif;
 }
 
-.copies-info h1, .patron-record h1, .transactions-page h1 {
+.copies-info h1, .patron-record h1, .transactions-page h1, .user-page h1, .patron-profile h1, .staff-profile h1 {
   font-size: 1.75rem;
   font-weight: 700;
+  margin-bottom: 1.5rem;
+}
+
+.patron-profile h2,
+.staff-profile h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
   margin-bottom: 1.5rem;
 }
 
@@ -306,14 +313,14 @@
 
 
 /* Table */
-.patron-table, .custom-table {
+.patron-table, .custom-table, .user-table {
   width: 100%;
   border-collapse: collapse;
   font-family: inherit;
 }
 
 /* header row */
-.patron-table thead tr, .custom-table thead tr{
+.patron-table thead tr, .custom-table thead tr, .user-table thead tr{
   background-color: #e5e7eb; /* light gray */
   font-weight: 600;
 }
@@ -322,7 +329,9 @@
 .patron-table th,
 .patron-table td,
 .custom-table th,
-.custom-table td  {
+.custom-table td,
+.user-table th,
+.user-table td {
   padding: 12px 16px;
   text-align: left;
   border-bottom: 1px solid #e5e7eb;
@@ -330,7 +339,8 @@
 
 /* hover for body rows */
 .patron-table tbody tr:hover,
-.custom-table tbody tr:hover {
+.custom-table tbody tr:hover,
+.user-table tbody tr:hover {
   background-color: #f3f4f6;
   transition: background-color 0.12s ease;
   cursor: pointer;
@@ -342,7 +352,7 @@
   width: 48px;
 }
 
-.patron-btn {
+.patron-btn, .user-btn {
   background: #c05b42;
   color: white;
   padding: 8px 12px;
@@ -352,11 +362,22 @@
   transition: background 0.25s ease;
 }
 
-.patron-btn:hover {
+.patron-btn:hover,
+.user-btn:hover {
   background: #c24e31;
   transform: scale(1.03);
   transition: background 0.25s ease, transform 0.25s ease;
 }
+
+.patron-actions .action-link {
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.patron-actions .action-link:hover {
+  text-decoration: underline;
+}
+
 
 
 .dots-btn {
@@ -455,6 +476,13 @@
   100% { transform: rotate(360deg); }
 }
 
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 2; }
+}
+
+
 .center-page {
   display: flex;
   justify-content: center;
@@ -463,6 +491,7 @@
   text-align: center;
   flex-direction: column; /* so text or spinner stacks vertically */
 }
+
 
 
 

@@ -42,7 +42,7 @@ const GuestSidebar = () => {
           <Link
             key={item.name}
             to={item.path}
-            className={`nav-link ${
+            className={`nav-link mb-1 ${
               location.pathname === item.path
                 ? "active text-white fw-bold"
                 : "text-gray-300"

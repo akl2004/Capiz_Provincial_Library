@@ -9,13 +9,21 @@ interface AdminLayoutProps {
 
 const AdminLayout = ({ content }: AdminLayoutProps) => {
   const [user, setUser] = useState<{
-    name: string;
+    first_name: string;
+    middle_name?: string | null;
+    last_name: string;
+    suffix?: string | null;
     avatar: string;
     role: string;
+    name?: string | null;
   }>({
-    name: "Guest",
+    first_name: "Guest",
+    middle_name: null,
+    last_name: "",
+    suffix: null,
     avatar: "./src/assets/lib-logo.png",
     role: "guest",
+    name: "Guest", // default
   });
 
   useEffect(() => {
@@ -25,7 +33,20 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
     AxiosInstance.get("/user", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        // map API response to expected structure if needed
+        console.log(res.data);
+        setUser({
+          first_name: res.data.first_name || "Guest",
+          middle_name: res.data.middle_name || null,
+          last_name: res.data.last_name || "",
+          suffix: res.data.suffix || null,
+          avatar: res.data.avatar || "./src/assets/lib-logo.png",
+          role: res.data.role || "guest",
+          name: res.data.name || `${res.data.first_name} ${res.data.last_name}`,
+        });
+
+      })
       .catch((err) => console.error("Failed to fetch user info", err));
   }, []);
 
@@ -37,11 +58,22 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
 
       <div className="admin-main">
         <Header
-          user={user || { name: "Guest", avatar: "./src/assets/lib-logo.png" }}
+          user={{
+            first_name: user.first_name,
+            middle_name: user.middle_name,
+            last_name: user.last_name,
+            suffix: user.suffix,
+            avatar: user.avatar,
+            role: user.role,
+            name: user.name, // new
+          }}
           onLogout={() => {
             localStorage.removeItem("authToken");
             setUser({
-              name: "Guest",
+              first_name: "Guest",
+              middle_name: null,
+              last_name: "",
+              suffix: null,
               avatar: "./src/assets/lib-logo.png",
               role: "guest",
             });

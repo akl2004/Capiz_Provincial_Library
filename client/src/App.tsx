@@ -28,6 +28,9 @@ import DailyAttendancePage from "./components/pages/Attendance/DailyAttendancePa
 import GuestDashboard from "./components/pages/Dashboard/GuestDashboard";
 import GuestLayout from "./components/Layout/Guest/GuestLayout";
 import Settings from "./components/pages/Settings/Settings";
+import Accounts from "./components/pages/Accounts/Accounts";
+import PatronProfile from "./components/pages/Accounts/PatronProfile";
+import StaffProfile from "./components/pages/Accounts/StaffProfile";
 
 export default function App() {
   return (
@@ -214,6 +217,30 @@ export default function App() {
           element={
             <ProtectedRoute>
               <AdminLayout content={<RenewalLimitSetting />} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/accounts"
+          element={
+            <ProtectedRoute>
+              <AdminLayout content={<Accounts />} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/accounts/patron/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout content={<PatronProfile />} />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/accounts/staff/:id"
+          element={
+            <ProtectedRoute>
+              <AdminLayout content={<StaffProfile />} />
             </ProtectedRoute>
           }
         />

@@ -26,7 +26,8 @@ const DailyAttendancePage = () => {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
-    patronId: "",
+    patronId: "", // the ID user types in
+    dbPatronId: null, // the actual patron database ID
     first_name: "",
     middle_name: "",
     last_name: "",
@@ -70,10 +71,14 @@ const DailyAttendancePage = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await AxiosInstance.post("/attendances", form);
+      await AxiosInstance.post("/attendances", {
+        ...form,
+        patron_id: form.dbPatronId || null, // ✅ foreign key
+      });
       setOpen(false);
       setForm({
         patronId: "",
+        dbPatronId: null,
         first_name: "",
         middle_name: "",
         last_name: "",
@@ -127,6 +132,7 @@ const DailyAttendancePage = () => {
         // Keep the previous purpose and affiliation editable
         affiliation: prev.affiliation,
         purpose_of_visit: prev.purpose_of_visit,
+        dbPatronId: patron.id, // ✅ actual foreign key
       }));
     } catch (err) {
       console.error("Patron not found", err);

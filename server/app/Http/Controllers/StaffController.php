@@ -18,17 +18,32 @@ class StaffController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required',
+            'first_name' => 'required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'suffix' => 'nullable|string|max:50',
+            'phone_number' => 'nullable|string|max:20',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'status' => 'required|in:active,onleave,inactive'
+            'role' => 'required|in:staff,admin',
+            'status' => 'required|in:active,onleave,inactive',
         ]);
 
+        $fullName = $request->first_name
+            . ($request->middle_name ? ' ' . $request->middle_name : '')
+            . ' ' . $request->last_name
+            . ($request->suffix ? ', ' . $request->suffix : '');
+
         $staff = User::create([
-            'name' => $request->name,
+            'first_name' => $request->first_name,
+            'middle_name' => $request->middle_name,
+            'last_name' => $request->last_name,
+            'suffix' => $request->suffix,
+            'phone_number' => $request->phone_number,
+            'name' => $fullName, // optional full name field
             'email' => $request->email,
             'password' => $request->password,
-            'role' => 'staff',
+            'role' => $request->role,
             'status' => $request->status,
         ]);
 
@@ -41,17 +56,40 @@ class StaffController extends Controller
         $staff = User::findOrFail($id);
 
         $request->validate([
-            'name' => 'sometimes|required',
+            'first_name' => 'sometimes|required|string|max:255',
+            'middle_name' => 'nullable|string|max:255',
+            'last_name' => 'sometimes|required|string|max:255',
+            'suffix' => 'nullable|string|max:50',
+            'phone_number' => 'nullable|string|max:20',
             'email' => 'sometimes|required|email|unique:users,email,' . $staff->id,
             'password' => 'nullable|min:6',
-            'status' => 'sometimes|required|in:active,onleave,inactive'
+            'role' => 'sometimes|required|in:staff,admin',
+            'status' => 'sometimes|required|in:active,onleave,inactive',
         ]);
 
         if ($request->filled('password')) {
             $staff->password = $request->password;
         }
 
-        $staff->update($request->only(['name', 'email', 'status']));
+        // Update full name
+        if ($request->filled('first_name') || $request->filled('last_name')) {
+            $staff->name =
+                ($request->first_name ?? $staff->first_name)
+                . ($request->middle_name ?? $staff->middle_name ? ' ' . $request->middle_name : '')
+                . ' ' . ($request->last_name ?? $staff->last_name)
+                . ($request->suffix ?? $staff->suffix ? ', ' . $request->suffix : '');
+        }
+
+        $staff->update($request->only([
+            'first_name',
+            'middle_name',
+            'last_name',
+            'suffix',
+            'phone_number',
+            'email',
+            'role',
+            'status',
+        ]));
 
         return response()->json($staff);
     }
@@ -63,5 +101,12 @@ class StaffController extends Controller
         $staff->delete();
 
         return response()->json(['message' => 'Staff deleted']);
+    }
+
+    // Show single staff
+    public function show($id)
+    {
+        $staff = User::where('role', 'staff')->findOrFail($id);
+        return response()->json($staff);
     }
 }
