@@ -29,6 +29,9 @@ return new class extends Migration
             $table->enum('role', ['staff', 'admin'])->default('staff');
             $table->enum('status', ['active', 'onleave', 'inactive'])->default('active');
 
+            // Last login timestamp
+            $table->timestamp('last_login_at')->nullable();
+
             $table->timestamps();
         });
     }

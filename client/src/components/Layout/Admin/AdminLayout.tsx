@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { Outlet } from "react-router-dom";
 import AdminSidebar from "./AdminSidebar";
 import Header from "./Header";
 import AxiosInstance from "../../../AxiosInstance";
 
 interface AdminLayoutProps {
-  content: React.ReactNode;
+  content?: React.ReactNode; // make optional
 }
 
 const AdminLayout = ({ content }: AdminLayoutProps) => {
@@ -23,19 +24,17 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
     suffix: null,
     avatar: "./src/assets/lib-logo.png",
     role: "guest",
-    name: "Guest", // default
+    name: "Guest",
   });
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    if (!token) return; // no token → stay as guest
+    if (!token) return;
 
     AxiosInstance.get("/user", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
-        // map API response to expected structure if needed
-        console.log(res.data);
         setUser({
           first_name: res.data.first_name || "Guest",
           middle_name: res.data.middle_name || null,
@@ -45,7 +44,6 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
           role: res.data.role || "guest",
           name: res.data.name || `${res.data.first_name} ${res.data.last_name}`,
         });
-
       })
       .catch((err) => console.error("Failed to fetch user info", err));
   }, []);
@@ -65,7 +63,7 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
             suffix: user.suffix,
             avatar: user.avatar,
             role: user.role,
-            name: user.name, // new
+            name: user.name,
           }}
           onLogout={() => {
             localStorage.removeItem("authToken");
@@ -80,7 +78,10 @@ const AdminLayout = ({ content }: AdminLayoutProps) => {
           }}
         />
 
-        <main className="admin-content">{content}</main>
+        <main className="admin-content">
+          {/* Render standalone content OR nested route content */}
+          {content ? content : <Outlet />}
+        </main>
       </div>
     </div>
   );

@@ -61,6 +61,7 @@ const PatronProfile: React.FC = () => {
 
   // Fetch Activity Logs
   useEffect(() => {
+    document.title = "Patron Profile";
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem("authToken");

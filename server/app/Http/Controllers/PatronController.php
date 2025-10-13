@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\LibrarySetting;
 use App\Models\Patron;
+use App\Models\ActivityLog;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PatronController extends Controller
 {
@@ -26,6 +29,8 @@ class PatronController extends Controller
 
     public function store(Request $request)
     {
+        $user = $request->user();
+
         $validated = $request->validate([
             'patron_id'   => 'nullable|string|unique:patrons,patron_id',
             'first_name'  => 'required|string|max:255',
@@ -54,6 +59,8 @@ class PatronController extends Controller
         $patron->expiration_date = Carbon::parse($createdAt)
             ->addYears((int) LibrarySetting::getValue('patron_expiration_years', 3));
 
+        // Log activity using the authenticated user
+        $this->logActivity('Add Patron', 'Added new patron: ' . $patron->first_name . ' ' . $patron->last_name, $user);
 
         return response()->json($patron, 201);
     }
@@ -65,6 +72,7 @@ class PatronController extends Controller
 
     public function update(Request $request, $id)
     {
+        $user = $request->user();
         $patron = Patron::findOrFail($id);
 
         $validated = $request->validate([
@@ -84,6 +92,9 @@ class PatronController extends Controller
         ]);
 
         $patron->update($validated);
+
+        // 🧾 Log the activity
+        $this->logActivity('Edit Patron', 'Updated patron: ' . $patron->first_name . ' ' . $patron->last_name, $user);
 
         return response()->json($patron);
     }
@@ -139,17 +150,34 @@ class PatronController extends Controller
     }
 
     
-    public function deactivate($id)
+    public function deactivate(Request $request, $id)
     {
+        $user = $request->user();
         $patron = Patron::findOrFail($id);
 
         $patron->status = 'Deactivated';
         $patron->save();
 
+        // 🧾 Log the activity
+        $this->logActivity('Deactivate Patron', 'Deactivated patron: ' . $patron->first_name . ' ' . $patron->last_name, $user);
+        
         return response()->json([
             'message' => 'Patron account deactivated successfully',
             'patron' => $patron
         ]);
     }
+
+    /** 🧾 Helper function to record activity **/
+    private function logActivity($action, $description = null, $user)
+    {
+        ActivityLog::create([
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'module' => 'Patron',
+            'action' => $action,
+            'description' => $description,
+        ]);
+    }
+
 
 }

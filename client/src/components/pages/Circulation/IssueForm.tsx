@@ -9,21 +9,25 @@ interface Patron {
   middle_name?: string;
   last_name: string;
   suffix?: string;
-  status: "Active" | "Deactivated" | "Blocked"; // add status
+  status: "Active" | "Deactivated" | "Blocked";
 }
 
 interface BookCopy {
   id: number;
   barcode: string;
   copy_number: number;
-  status: "available" | "borrowed"; // add status
+  status: "available" | "borrowed";
   book: {
     title: string;
     call_number: string;
   };
 }
 
-const IssueForm = () => {
+interface IssueFormProps {
+  onSuccess?: () => void; // optional callback
+}
+
+const IssueForm = ({ onSuccess }: IssueFormProps) => {
   const [patronId, setPatronId] = useState("");
   const [patronInfo, setPatronInfo] = useState<Patron | null>(null);
 
@@ -37,37 +41,24 @@ const IssueForm = () => {
   const [modalMessage, setModalMessage] = useState<string | null>(null);
 
   const navigate = useNavigate();
-  
+
   const ErrorModal = ({
     message,
     onClose,
   }: {
     message: string;
     onClose: () => void;
-  }) => {
-    return (
-      <div
-        className="modal-overlay"
-        onClick={onClose} // close when clicking outside
-      >
-        <div
-          className="modal-box"
-          onClick={(e) => e.stopPropagation()} // prevent closing when clicking inside
-        >
-          <h2>⚠️ Error</h2>
-          <p>{message}</p>
-          <button
-            onClick={onClose}
-            className="close-btn"
-          >
-            x
-          </button>
-        </div>
+  }) => (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+        <h2>⚠️ Error</h2>
+        <p>{message}</p>
+        <button onClick={onClose} className="close-btn">
+          x
+        </button>
       </div>
-    );
-  };
-
-
+    </div>
+  );
 
   const fullName = [
     patronInfo?.first_name,
@@ -85,6 +76,7 @@ const IssueForm = () => {
   }, []);
 
   useEffect(() => {
+    document.title = "Issue Form";
     if (!patronId) {
       setPatronInfo(null);
       return;
@@ -136,8 +128,20 @@ const IssueForm = () => {
       book_copy_id: bookInfo.id,
     })
       .then(() => {
-        alert("✅ Book issued successfully!"); // you can also convert this to a success modal later
-        navigate("/admin/circulation");
+        alert("✅ Book issued successfully!");
+
+        // 🔥 Call parent callback to refresh table
+        if (onSuccess) {
+          onSuccess();
+        }
+        
+        // navigate back after success
+        const role = localStorage.getItem("role")?.toLowerCase();
+        if (role === "admin") {
+          navigate("/admin/circulation");
+        } else if (role === "staff") {
+          navigate("/staff/circulation");
+        }
       })
       .catch((err: any) => {
         if (err.response) {
@@ -155,7 +159,6 @@ const IssueForm = () => {
         }
       });
   };
-
 
   return (
     <div className="issue-form-container">
@@ -182,7 +185,6 @@ const IssueForm = () => {
 
           {/* Dates */}
           <div className="date-row">
-            {/* Issue Date */}
             <div className="date-field">
               <label htmlFor="issue_date">Issue Date</label>
               <input
@@ -194,7 +196,6 @@ const IssueForm = () => {
               />
             </div>
 
-            {/* Due Date */}
             <div className="date-field">
               <label htmlFor="due_date">Due Date</label>
               <input
@@ -257,16 +258,24 @@ const IssueForm = () => {
           <button
             type="button"
             className="cancel-btn"
-            onClick={() => navigate("/admin/circulation")}
+            onClick={() => {
+              const role = localStorage.getItem("role")?.toLowerCase();
+              if (role === "admin") {
+                navigate("/admin/circulation");
+              } else if (role === "staff") {
+                navigate("/staff/circulation");
+              }
+            }}
           >
             Cancel
           </button>
+
           <button type="submit" className="submit-btn">
             Confirm Loan
           </button>
         </div>
       </form>
-      {/* Render the modal inside the return */}
+
       {modalMessage && (
         <ErrorModal
           message={modalMessage}

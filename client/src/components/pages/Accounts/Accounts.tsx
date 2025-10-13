@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import AxiosInstance from "../../../AxiosInstance";
 import LoadingSpinner from "../../LoadingSpinner";
 import { useNavigate } from "react-router-dom";
+import moment from "moment-timezone";
 
 interface Staff {
   id: number;
@@ -44,6 +45,8 @@ const Accounts: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const [defaultTimezone, setDefaultTimezone] = useState<string>("Asia/Manila"); // ✅ default fallback
+
   // Initialize all fields
   const [formData, setFormData] = useState({
     role: "staff",
@@ -56,6 +59,18 @@ const Accounts: React.FC = () => {
     password: "",
     status: "active",
   });
+
+  const fetchSettings = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      const res = await AxiosInstance.get("/settings/timezone", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setDefaultTimezone(res.data.timezone || "Asia/Manila");
+    } catch (err) {
+      console.error("Error fetching timezone setting:", err);
+    }
+  };
 
   const fetchStaff = async () => {
     try {
@@ -94,8 +109,10 @@ const Accounts: React.FC = () => {
   };
 
   useEffect(() => {
+    fetchSettings();
     fetchStaff();
     fetchPatrons();
+    document.title = "Accounts";
   }, []);
 
   // Combine all users for searching, filtering, and sorting
@@ -192,13 +209,31 @@ const Accounts: React.FC = () => {
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
   const currentUsers = sortedUsers.slice(indexOfFirstItem, indexOfLastItem);
 
+  // Display last_login_at in the system timezone
+  const formatLastLogin = (dateStr: string | null) => {
+    if (!dateStr) return "Never";
+
+    const m = moment(dateStr);
+    if (!m.isValid()) return "Invalid Date";
+
+    try {
+      return m
+        .tz(defaultTimezone || "Asia/Manila")
+        .format("MMMM D, YYYY h:mm A");
+    } catch (err) {
+      console.error("Timezone error:", err);
+      return m.format("MMMM D, YYYY h:mm A"); // fallback to local
+    }
+  };
+
+
   return (
     <div className="user-page mt-4">
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h1 className="text-xl font-semibold mb-0">Staff Accounts</h1>
+          <h1 className="text-xl font-semibold mb-0">Registered Accounts</h1>
           <p className="mb-0">
-            <i>Manage and view all registered staff accounts.</i>
+            <i>Manage and view all registered accounts.</i>
           </p>
         </div>
 
@@ -342,7 +377,6 @@ const Accounts: React.FC = () => {
                     ? user.role
                     : "patron"}
                 </td>
-
                 <td>
                   <span
                     className={`status-pill status-${
@@ -353,11 +387,7 @@ const Accounts: React.FC = () => {
                   </span>
                 </td>
                 <td>{new Date(user.created_at).toLocaleDateString()}</td>
-                <td>
-                  {user.last_login_at
-                    ? new Date(user.last_login_at).toLocaleString()
-                    : "Never"}
-                </td>
+                <td>{formatLastLogin(user.last_login_at)}</td>
               </tr>
             ))}
           </tbody>

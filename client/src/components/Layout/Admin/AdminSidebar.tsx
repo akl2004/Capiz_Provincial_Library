@@ -6,15 +6,20 @@ import accessionIcon from "../../../assets/gray-icons/accession.png";
 import circulationIcon from "../../../assets/gray-icons/circulation.png";
 import attendanceIcon from "../../../assets/gray-icons/attendance.png";
 import reportsIcon from "../../../assets/gray-icons/reports.png";
+import accountsIcon from "../../../assets/gray-icons/accounts.png";
+import settingsIcon from "../../../assets/gray-icons/settings.png";
+
 import elibIcon from "../../../assets/cpl_logo.png";
 
-import dashboardIconActive from "../../../assets/icons-black/dashboard.png";
+import dashboardIconActive from "../../../assets/white-icons/dashboard.png";
 import patronIconActive from "../../../assets/white-icons/patron.png";
 import catalogingIconActive from "../../../assets/white-icons/cataloging.png";
 import accessionIconActive from "../../../assets/white-icons/accession.png";
 import circulationIconActive from "../../../assets/white-icons/circulation.png";
-import attendanceIconActive from "../../../assets/icons-black/attendance.png";
-import reportsIconActive from "../../../assets/icons-black/reports.png";
+import attendanceIconActive from "../../../assets/white-icons/attendance.png";
+import reportsIconActive from "../../../assets/white-icons/reports.png";
+import accountsIconActive from "../../../assets/white-icons/accounts.png";
+import settingsIconActive from "../../../assets/white-icons/settings.png";
 
 const AdminSidebar = () => {
   const location = useLocation();
@@ -52,7 +57,7 @@ const AdminSidebar = () => {
     },
     {
       name: "Attendance",
-      path: "/admin/dailyattendance",
+      path: "/admin/attendance",
       icon: attendanceIcon,
       activeIcon: attendanceIconActive,
     },
@@ -68,14 +73,14 @@ const AdminSidebar = () => {
     {
       name: "Accounts",
       path: "/admin/accounts",
-      icon: reportsIcon,
-      activeIcon: reportsIconActive,
+      icon: accountsIcon,
+      activeIcon: accountsIconActive,
     },
     {
       name: "Settings",
       path: "/admin/settings",
-      icon: reportsIcon,
-      activeIcon: reportsIconActive,
+      icon: settingsIcon,
+      activeIcon: settingsIconActive,
     },
   ];
 

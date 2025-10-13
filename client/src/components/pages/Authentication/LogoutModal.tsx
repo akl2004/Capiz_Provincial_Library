@@ -49,23 +49,6 @@ const LogoutModal: React.FC<LogoutModalProps> = ({ onClose }) => {
           position: "relative",
         }}
       >
-        <button
-          className="close-btn"
-          onClick={onClose}
-          style={{
-            fontSize: "1.5rem",
-            padding: "0.25rem 0.5rem",
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            background: "transparent",
-            border: "none",
-            cursor: "pointer",
-          }}
-          aria-label="Close logout modal"
-        >
-          &times;
-        </button>
         <h5 className="mb-3 mt-4">Are you sure you want to log out?</h5>
         <button
           className="logout-button btn btn-danger w-100 mb-2"

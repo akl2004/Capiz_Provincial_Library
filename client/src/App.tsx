@@ -5,12 +5,13 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Admin Components
 import AdminDashboard from "./components/Admin/AdminDashboard";
 import AdminLayout from "./components/Layout/Admin/AdminLayout";
+import StaffLayout from "./components/Layout/Staff/StaffLayout";
 
 // Pages
 import Patron from "./components/pages/Patron/Patron";
 import Cataloging from "./components/pages/Catalog/Cataloging";
 import Accession from "./components/pages/Accession";
-import Circulation from "./components/pages/Circulation/Circulation";
+import Circulation from "./components/pages/Circulation/CirculationPage";
 import Attendance from "./components/pages/Attendance/Attendance";
 import Reports from "./components/pages/Reports";
 import BookDetails from "./components/pages/Catalog/BookDetails";
@@ -25,17 +26,20 @@ import FineSetting from "./components/pages/Settings/FineSetting";
 import RenewalLimitSetting from "./components/pages/Settings/RenewalLimitSetting";
 import PatronTransactions from "./components/pages/Patron/PatronTransaction";
 import DailyAttendancePage from "./components/pages/Attendance/DailyAttendancePage";
-import GuestDashboard from "./components/pages/Dashboard/GuestDashboard";
 import GuestLayout from "./components/Layout/Guest/GuestLayout";
 import Settings from "./components/pages/Settings/Settings";
 import Accounts from "./components/pages/Accounts/Accounts";
 import PatronProfile from "./components/pages/Accounts/PatronProfile";
 import StaffProfile from "./components/pages/Accounts/StaffProfile";
+import StaffDashboard from "./components/pages/Dashboard/StaffDashboard";
+import GuestDasboard from "./components/pages/Dashboard/GuestDasboard";
+import SearchResults from "./components/pages/Catalog/SearchResults";
 
 export default function App() {
   return (
     <HashRouter>
       <Routes>
+        {/* Role selection accessible to any logged-in user */}
         <Route
           path="/"
           element={
@@ -44,18 +48,20 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* Guest Routes */}
         <Route
           path="/guest/guestdashboard"
           element={
-            <ProtectedRoute>
-              <GuestLayout content={<GuestDashboard />} />
+            <ProtectedRoute allowedRoles={["guest"]}>
+              <GuestLayout content={<GuestDasboard />} />
             </ProtectedRoute>
           }
         />
         <Route
           path="/guest/cataloging"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["guest"]}>
               <GuestLayout content={<Cataloging />} />
             </ProtectedRoute>
           }
@@ -63,187 +69,95 @@ export default function App() {
         <Route
           path="/guest/dailyattendance"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute allowedRoles={["guest"]}>
               <GuestLayout content={<DailyAttendancePage />} />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/admin/admindashboard"
+          path="guest/guestdashboard/search"
           element={
-            <ProtectedRoute>
-              <AdminLayout content={<AdminDashboard />} />
+            <ProtectedRoute allowedRoles={["guest"]}>
+              <GuestLayout content={<SearchResults />} />
             </ProtectedRoute>
           }
         />
+
+        {/* Admin Routes */}
         <Route
-          path="/admin/patrons"
+          path="/admin/*"
           element={
-            <ProtectedRoute>
-              <AdminLayout content={<Patron />} />
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminLayout content={null} />
             </ProtectedRoute>
           }
-        />
+        >
+          <Route path="admindashboard" element={<AdminDashboard />} />
+          <Route path="patrons" element={<Patron />} />
+          <Route path="patrons/:id" element={<PatronInfo />} />
+          <Route
+            path="patrons/:id/transactions"
+            element={<PatronTransactions />}
+          />
+          <Route path="cataloging" element={<Cataloging />} />
+          <Route path="cataloging/addbook" element={<BookForm />} />
+          <Route path="cataloging/:id" element={<BookDetails />} />
+          <Route
+            path="cataloging/:id/:copyId"
+            element={<CopyInformation />}
+          />
+          <Route path="accession" element={<Accession />} />
+          <Route path="circulation" element={<Circulation />} />
+          <Route path="circulation/issue" element={<IssueForm />} />
+          {/* <Route path="dailyattendance" element={<DailyAttendancePage />} /> */}
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="reports" element={<Reports />} />
+          <Route path="settings" element={<Settings />} />
+          <Route path="settings/loan-days" element={<LoanDaysSetting />} />
+          <Route
+            path="settings/expiration-years"
+            element={<ExpirationYearsSetting />}
+          />
+          <Route path="settings/fine-per-day" element={<FineSetting />} />
+          <Route
+            path="settings/renewal-limit"
+            element={<RenewalLimitSetting />}
+          />
+          <Route path="accounts" element={<Accounts />} />
+          <Route path="accounts/patron/:id" element={<PatronProfile />} />
+          <Route path="accounts/staff/:id" element={<StaffProfile />} />
+        </Route>
+
+        {/* Staff Routes */}
         <Route
-          path="/admin/patrons/:id"
+          path="/staff/*"
           element={
-            <ProtectedRoute>
-              <AdminLayout content={<PatronInfo />} />
+            <ProtectedRoute allowedRoles={["staff"]}>
+              <StaffLayout content={null} />
             </ProtectedRoute>
           }
-        />
-        <Route
-          path="/admin/patrons/:id/transactions"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<PatronTransactions />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/cataloging"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Cataloging />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/cataloging/addbook"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<BookForm />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/cataloging/:id"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<BookDetails />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/cataloging/:id/copies/:copyId"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<CopyInformation />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/accession"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Accession />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/circulation"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Circulation />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/circulation/issue"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<IssueForm />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/dailyattendance/attendance"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Attendance />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/dailyattendance"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<DailyAttendancePage />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/reports"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Reports />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/settings"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Settings />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/settings/loan-days"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<LoanDaysSetting />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/settings/expiration-years"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<ExpirationYearsSetting />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/settings/fine-per-day"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<FineSetting />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/settings/renewal-limit"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<RenewalLimitSetting />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/accounts"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<Accounts />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/accounts/patron/:id"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<PatronProfile />} />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/accounts/staff/:id"
-          element={
-            <ProtectedRoute>
-              <AdminLayout content={<StaffProfile />} />
-            </ProtectedRoute>
-          }
-        />
+        >
+          <Route path="staffdashboard" element={<StaffDashboard />} />
+          <Route path="patrons" element={<Patron />} />
+          <Route path="patrons/:id" element={<PatronInfo />} />
+          <Route
+            path="patrons/:id/transactions"
+            element={<PatronTransactions />}
+          />
+          <Route path="cataloging" element={<Cataloging />} />
+          <Route path="cataloging/addbook" element={<BookForm />} />
+          <Route path="cataloging/:id" element={<BookDetails />} />
+          <Route
+            path="cataloging/:id/:copyId"
+            element={<CopyInformation />}
+          />
+          <Route path="accession" element={<Accession />} />
+          <Route path="circulation" element={<Circulation />} />
+          <Route path="circulation/issue" element={<IssueForm />} />
+          {/* <Route path="dailyattendance" element={<DailyAttendancePage />} /> */}
+          <Route path="attendance" element={<Attendance />} />
+          <Route path="reports" element={<Reports />} />
+        </Route>
       </Routes>
     </HashRouter>
   );

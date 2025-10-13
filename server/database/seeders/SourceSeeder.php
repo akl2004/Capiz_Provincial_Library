@@ -8,8 +8,11 @@ use Illuminate\Database\Seeder;
 class SourceSeeder extends Seeder {
     public function run(): void {
         $sources = [
-            ['name' => 'Library'],
-            ['name' => 'Donated'],
+            ['name' => 'Purchased'],
+            ['name' => 'Donation'],
+            ['name' => 'Exchange'],
+            ['name' => 'Legal Deposit'],
+            ['name' => 'Other']
         ];
 
         foreach ($sources as $source) {

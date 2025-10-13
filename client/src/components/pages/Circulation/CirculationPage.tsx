@@ -1,0 +1,676 @@
+import { Fragment, useEffect, useRef, useState } from "react";
+import AxiosInstance from "../../../AxiosInstance";
+import { useNavigate } from "react-router-dom";
+import IssueForm from "./IssueForm";
+import ReturnForm from "./ReturnForm";
+import RenewForm from "./RenewForm";
+import bookIcon from "../../../assets/book_icon.png";
+import LoadingSpinner from "../../LoadingSpinner";
+
+interface Circulation {
+  id: number;
+  patron: {
+    patron_id: number;
+    first_name: string;
+    middle_name?: string;
+    last_name: string;
+    suffix?: string;
+  };
+  book_copy: {
+    id: number;
+    barcode: string;
+    book: {
+      title: string;
+      call_number: string;
+    };
+  };
+  issue_date: string;
+  due_date: string;
+  date_returned: string | null;
+  status: string;
+  renewed?: boolean;
+  fine: number;
+}
+
+const CirculationPage = () => {
+  const [records, setRecords] = useState<Circulation[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [filterStatus, setFilterStatus] = useState<string | null>(null);
+  const [expandedRows, setExpandedRows] = useState<number[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    "log" | "issue" | "return" | "renew"
+  >("log");
+
+  // Track which tally card dropdown is open
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const recordsPerPage = 10; // adjust as needed
+
+  // Track period selection for each tally card
+  const [activePeriodMap, setActivePeriodMap] = useState<{
+    [key: string]: "This Week" | "This Month" | "This Year";
+  }>({
+    Borrowed: "This Week",
+    Returned: "This Week",
+    Overdue: "This Week",
+    Renewed: "This Week",
+  });
+
+  // Sorting
+  const [sortField, setSortField] = useState<
+    "patron" | "book" | "issue_date" | null
+  >(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  // Filter dropdown toggle
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+
+  // Status filter (already exists)
+  const filterRef = useRef<HTMLDivElement | null>(null);
+  const sortRef = useRef<HTMLDivElement | null>(null);
+
+  // useEffect(() => {
+  //   document.title = "Circulation";
+  //   AxiosInstance.get("/circulations")
+  //     .then((res) => setRecords(res.data))
+  //     .catch((err) => console.error(err))
+  //     .finally(() => setLoading(false));
+  // }, []);
+  
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(event.target as Node))
+        setSortMenuOpen(false);
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(event.target as Node)
+      )
+        setFilterMenuOpen(false);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const getStatus = (record: Circulation) => {
+    if (record.status === "returned") return "Returned";
+    if (record.status === "lost") return "Lost";
+    if (record.status === "borrowed") {
+      return new Date(record.due_date) < new Date() ? "Overdue" : "Borrowed";
+    }
+    return record.status;
+  };
+
+  const toggleRow = (id: number) => {
+    setExpandedRows((prev) =>
+      prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]
+    );
+  };
+
+  const filterByPeriod = (
+    record: Circulation,
+    period: "This Week" | "This Month" | "This Year"
+  ) => {
+    const today = new Date();
+    const issueDate = new Date(record.issue_date);
+
+    if (period === "This Week") {
+      const firstDayOfWeek = new Date(today);
+      firstDayOfWeek.setDate(today.getDate() - today.getDay());
+      const lastDayOfWeek = new Date(firstDayOfWeek);
+      lastDayOfWeek.setDate(firstDayOfWeek.getDate() + 6);
+      return issueDate >= firstDayOfWeek && issueDate <= lastDayOfWeek;
+    }
+
+    if (period === "This Month") {
+      return (
+        issueDate.getMonth() === today.getMonth() &&
+        issueDate.getFullYear() === today.getFullYear()
+      );
+    }
+
+    if (period === "This Year") {
+      return issueDate.getFullYear() === today.getFullYear();
+    }
+
+    return true;
+  };
+
+  const fetchRecords = () => {
+    setLoading(true);
+    AxiosInstance.get("/circulations")
+      .then((res) => setRecords(res.data))
+      .catch((err) => console.error(err.response?.data || err.message))
+      .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    document.title = "Circulation";
+    fetchRecords();
+  }, []);
+
+
+
+  const filteredRecords = records.filter((rec) => {
+    const matchesSearch =
+      [
+        rec.patron?.first_name,
+        rec.patron?.middle_name,
+        rec.patron?.last_name,
+        rec.patron?.suffix,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      rec.book_copy?.book?.title
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      rec.book_copy?.barcode.includes(searchTerm);
+
+    const matchesStatus =
+      !filterStatus ||
+      (filterStatus === "Renewed"
+        ? rec.renewed
+        : getStatus(rec) === filterStatus);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  // Tally counts
+  const tally = {
+    Borrowed: records.filter(
+      (r) =>
+        getStatus(r) === "Borrowed" &&
+        filterByPeriod(r, activePeriodMap["Borrowed"])
+    ).length,
+    Returned: records.filter(
+      (r) =>
+        getStatus(r) === "Returned" &&
+        filterByPeriod(r, activePeriodMap["Returned"])
+    ).length,
+    Overdue: records.filter(
+      (r) =>
+        getStatus(r) === "Overdue" &&
+        filterByPeriod(r, activePeriodMap["Overdue"])
+    ).length,
+    Renewed: records.filter(
+      (r) => r.renewed && filterByPeriod(r, activePeriodMap["Renewed"])
+    ).length,
+  };
+
+  const getStatusColor = (record: Circulation) => {
+    const status = getStatus(record);
+    switch (status) {
+      case "Borrowed":
+        return "#0d6efd"; // blue
+      case "Returned":
+        return "#198754"; // green
+      case "Overdue":
+        return "#dc3545"; // red
+      case "Renewed":
+        return "#ffc107"; // yellow
+      default:
+        return "#6c757d"; // gray for others
+    }
+  };
+
+  // Apply sorting to filtered records
+  let sortedRecords = [...filteredRecords]; // copy first
+  if (sortField) {
+    sortedRecords.sort((a, b) => {
+      let aVal: string | Date = "";
+      let bVal: string | Date = "";
+
+      switch (sortField) {
+        case "patron":
+          aVal = [a.patron.first_name, a.patron.last_name].join(" ");
+          bVal = [b.patron.first_name, b.patron.last_name].join(" ");
+          break;
+        case "book":
+          aVal = a.book_copy.book.title;
+          bVal = b.book_copy.book.title;
+          break;
+        case "issue_date":
+          aVal = new Date(a.issue_date);
+          bVal = new Date(b.issue_date);
+          break;
+      }
+
+      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+  }
+
+  // Use `sortedRecords` for pagination
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = sortedRecords.slice(
+    indexOfFirstRecord,
+    indexOfLastRecord
+  );
+
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+
+  return (
+    <>
+      <div>
+        <h1 className="text-2xl font-bold">Circulation Records</h1>
+        <p>
+          <i>Manage book borrowings, returns, and renewals.</i>
+        </p>
+      </div>
+
+      {/* Tally Panel */}
+      <div className="circulation-tally">
+        {Object.entries(tally).map(([key, count]) => {
+          let cardClass = "";
+          if (key === "Borrowed") cardClass = "tally-borrowed";
+          else if (key === "Returned") cardClass = "tally-returned";
+          else if (key === "Overdue") cardClass = "tally-overdue";
+          else if (key === "Renewed") cardClass = "tally-renewed";
+
+          return (
+            <div
+              key={key}
+              className={`tally-card ${cardClass} ${
+                filterStatus === key ? "tally-active" : ""
+              }`}
+              onClick={() => setFilterStatus(filterStatus === key ? null : key)}
+            >
+              <img src={bookIcon} alt={`${key} icon`} />
+              <div className="tally-text">
+                <div className="tally-key">{key}</div>
+                <div className="tally-count">{count}</div>
+
+                <span
+                  className="filter-trigger mt-2 d-block"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveDropdown((prev) => (prev === key ? null : key));
+                  }}
+                >
+                  <i className="bi bi-funnel"></i> Filter date
+                </span>
+
+                {activeDropdown === key && (
+                  <div className="dropdown-options mt-1">
+                    {["This Week", "This Month", "This Year"].map((period) => (
+                      <div
+                        key={period}
+                        className={`dropdown-option ${
+                          activePeriodMap[key] === period ? "active" : ""
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActivePeriodMap((prev) => ({
+                            ...prev,
+                            [key]: period as
+                              | "This Week"
+                              | "This Month"
+                              | "This Year",
+                          }));
+                        }}
+                      >
+                        {period}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Action Tabs */}
+      <div className="circulation-container">
+        <div className="action-buttons">
+          <button
+            className={`btn ${activeTab === "log" ? "active" : ""}`}
+            onClick={() => setActiveTab("log")}
+          >
+            Circulation Log
+          </button>
+          <button
+            className={`btn ${activeTab === "issue" ? "active" : ""}`}
+            onClick={() => setActiveTab("issue")}
+          >
+            Issue
+          </button>
+          <button
+            className={`btn ${activeTab === "return" ? "active" : ""}`}
+            onClick={() => setActiveTab("return")}
+          >
+            Return
+          </button>
+          <button
+            className={`btn ${activeTab === "renew" ? "active" : ""}`}
+            onClick={() => setActiveTab("renew")}
+          >
+            Renew
+          </button>
+        </div>
+
+        <div className="action-content mt-3">
+          {activeTab === "log" && (
+            <div>
+              {/* Controls Row: Search, Sort, Filter */}
+              <div
+                className="d-flex gap-2 mb-3"
+                style={{ alignItems: "center" }}
+              >
+                {/* Search */}
+                <div
+                  className="position-relative flex-grow-1"
+                  style={{ maxWidth: "85%" }}
+                >
+                  <span
+                    className="position-absolute top-50 translate-middle-y ps-2"
+                    style={{ left: "10px", color: "#6c757d" }}
+                  >
+                    <i className="bi bi-search"></i>
+                  </span>
+                  <input
+                    className="form-control ps-5"
+                    placeholder="Search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
+
+                {/* Sort */}
+                <div className="position-relative" ref={sortRef}>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary d-flex align-items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSortMenuOpen(!sortMenuOpen);
+                    }}
+                  >
+                    <i className="bi bi-sort-alpha-down me-2"></i> Sort
+                  </button>
+                  {sortMenuOpen && (
+                    <div
+                      className="sort-dropdown"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="sort-fields">
+                        {[
+                          { field: "patron", label: "Patron Name" },
+                          { field: "book", label: "Book Title" },
+                          { field: "issue_date", label: "Issue Date" },
+                        ].map(({ field, label }) => (
+                          <div
+                            key={field}
+                            className="sort-field"
+                            onClick={() =>
+                              setSortField(
+                                sortField === field ? null : (field as any)
+                              )
+                            }
+                          >
+                            {sortField === field && (
+                              <span className="selected-dot"></span>
+                            )}
+                            {label}
+                          </div>
+                        ))}
+                      </div>
+                      <div className="sort-order">
+                        <button
+                          className={`sort-btn ${
+                            sortField && sortOrder === "asc" ? "active" : ""
+                          }`}
+                          onClick={() => sortField && setSortOrder("asc")}
+                        >
+                          ASC
+                        </button>
+                        <button
+                          className={`sort-btn ${
+                            sortField && sortOrder === "desc" ? "active" : ""
+                          }`}
+                          onClick={() => sortField && setSortOrder("desc")}
+                        >
+                          DESC
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Filter */}
+                <div className="position-relative" ref={filterRef}>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary d-flex align-items-center"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFilterMenuOpen(!filterMenuOpen);
+                    }}
+                  >
+                    <i className="bi bi-sliders me-2"></i> Filter
+                  </button>
+                  {filterMenuOpen && (
+                    <div
+                      className="filter-dropdown"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {["Borrowed", "Returned", "Overdue", "Renewed"].map(
+                        (status) => (
+                          <div
+                            key={status}
+                            className={`filter-item ${
+                              filterStatus === status ? "active" : ""
+                            }`}
+                            onClick={() =>
+                              setFilterStatus(
+                                filterStatus === status ? null : status
+                              )
+                            }
+                          >
+                            {status}
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <hr />
+
+              {loading ? (
+                <LoadingSpinner />
+              ) : (
+                <table className="circulation-table">
+                  <thead>
+                    <tr>
+                      <th>Patron ID</th>
+                      <th>Patron Name</th>
+                      <th>Book Title</th>
+                      <th>Barcode</th>
+                      <th>Issued Date</th>
+                      <th>Due Date</th>
+                      <th>Return Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentRecords.length === 0 ? (
+                      <tr>
+                        <td className="text-center py-4" colSpan={8}>
+                          No circulation records found.
+                        </td>
+                      </tr>
+                    ) : (
+                      currentRecords.map((rec) => (
+                        <Fragment key={rec.id}>
+                          <tr onClick={() => toggleRow(rec.id)}>
+                            <td colSpan={8} style={{ padding: 0 }}>
+                              <div
+                                className="row-card"
+                                style={{ borderColor: getStatusColor(rec) }}
+                              >
+                                <div>{rec.patron?.patron_id}</div>
+                                <div>
+                                  {[
+                                    rec.patron?.first_name,
+                                    rec.patron?.middle_name,
+                                    rec.patron?.last_name,
+                                    rec.patron?.suffix,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" ")}
+                                </div>
+                                <div>{rec.book_copy?.book?.title}</div>
+                                <div>{rec.book_copy?.barcode}</div>
+                                <div>{rec.issue_date}</div>
+                                <div>{rec.due_date}</div>
+                                <div>{rec.date_returned || "-"}</div>
+                                <div className="fw-semibold">
+                                  {getStatus(rec)}
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {expandedRows.includes(rec.id) && (
+                            <tr className="expanded-row">
+                              <td colSpan={8} style={{ padding: 0 }}>
+                                <table
+                                  className="expanded-table"
+                                  style={{
+                                    width: "100%",
+                                    borderCollapse: "collapse",
+                                    border: `1px solid ${getStatusColor(rec)}`,
+                                  }}
+                                >
+                                  <thead>
+                                    <tr>
+                                      <th style={{ padding: "0.5rem" }}>
+                                        Borrower Info
+                                      </th>
+                                      <th style={{ padding: "0.5rem" }}>
+                                        Book Info
+                                      </th>
+                                      <th style={{ padding: "0.5rem" }}>
+                                        Loan Details
+                                      </th>
+                                      <th style={{ padding: "0.5rem" }}>
+                                        Status
+                                      </th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    <tr>
+                                      <td style={{ padding: "0.5rem" }}>
+                                        <strong>Patron ID:</strong>{" "}
+                                        {rec.patron?.patron_id} <br />
+                                        <strong>Name:</strong>{" "}
+                                        {[
+                                          rec.patron?.first_name,
+                                          rec.patron?.middle_name,
+                                          rec.patron?.last_name,
+                                          rec.patron?.suffix,
+                                        ]
+                                          .filter(Boolean)
+                                          .join(" ")}
+                                      </td>
+                                      <td style={{ padding: "0.5rem" }}>
+                                        <strong>Barcode:</strong>{" "}
+                                        {rec.book_copy?.barcode} <br />
+                                        <strong>Title:</strong>{" "}
+                                        {rec.book_copy?.book?.title} <br />
+                                        <strong>Call Number:</strong>{" "}
+                                        {rec.book_copy?.book?.call_number ||
+                                          "-"}{" "}
+                                        <br />
+                                        <strong>Copy No.:</strong>{" "}
+                                        {rec.book_copy?.id}
+                                      </td>
+                                      <td style={{ padding: "0.5rem" }}>
+                                        <strong>Issue Date:</strong>{" "}
+                                        {rec.issue_date} <br />
+                                        <strong>Due Date:</strong>{" "}
+                                        {rec.due_date} <br />
+                                        <strong>Renewals:</strong>{" "}
+                                        {rec.renewed ? 1 : 0} <br />
+                                        <strong>Return Date:</strong>{" "}
+                                        {rec.date_returned || "-"}
+                                      </td>
+                                      <td style={{ padding: "0.5rem" }}>
+                                        <strong>Status:</strong>{" "}
+                                        {getStatus(rec)} <br />
+                                        {getStatus(rec) === "Overdue" && (
+                                          <span>
+                                            <strong>Fine: </strong>₱
+                                            {(rec.fine ?? 0).toFixed(2)}
+                                          </span>
+                                        )}
+                                      </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              )}
+              {filteredRecords.length > 0 && (
+                <div className="pagination-info text-center mb-2 mt-3">
+                  Showing {indexOfFirstRecord + 1} -{" "}
+                  {Math.min(indexOfLastRecord, filteredRecords.length)} of{" "}
+                  {filteredRecords.length} records
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "issue" && <IssueForm onSuccess={fetchRecords} />}
+          {activeTab === "return" && <ReturnForm />}
+          {activeTab === "renew" && <RenewForm />}
+        </div>
+
+        {totalPages > 1 && (
+          <div className="pagination d-flex justify-content-center gap-1 mt-2">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              <i className="bi bi-chevron-double-left"></i> Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                className={currentPage === i + 1 ? "active" : ""}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next <i className="bi bi-chevron-double-right"></i>
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default CirculationPage;

@@ -4,15 +4,24 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use Illuminate\Http\Request;
+use App\Models\ActivityLog;
+use Illuminate\Support\Facades\Auth;
+
 
 class StaffController extends Controller
 {
     // List all staff
     public function index()
-    {
-        $staff = User::where('role', 'staff')->get();
-        return response()->json($staff);
-    }
+{
+    $staff = User::where('role', 'staff')
+                 ->select(
+                     'id', 'first_name', 'middle_name', 'last_name', 'suffix',
+                     'email', 'role', 'status', 'created_at', 'last_login_at'
+                 )
+                 ->get();
+    return response()->json($staff);
+}
+
 
     // Add new staff
     public function store(Request $request)

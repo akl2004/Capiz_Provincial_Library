@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import LoginModal from "./LoginModal";
 
 const roles = [
-  { name: "Guest", image: "./src/assets/icons-white/admin.png" },
-  { name: "Staff", image: "./src/assets/icons-white/admin.png" },
-  { name: "Admin", image: "./src/assets/icons-white/admin.png" },
+  { name: "Guest", image: "./src/assets/orange-icons/guest.png" },
+  { name: "Staff", image: "./src/assets/orange-icons/staff.png" },
+  { name: "Admin", image: "./src/assets/orange-icons/admin.png" },
 ];
 
 const RoleSelection: React.FC = () => {
@@ -27,14 +27,17 @@ const RoleSelection: React.FC = () => {
     avatar: string;
     role: string;
   }) => {
+    // store role in localStorage
+    localStorage.setItem("role", user.role.toLowerCase());
+
     setLoggedInUser(user);
 
-    if (user.role === "staff") {
+    if (user.role.toLowerCase() === "staff") {
       navigate("/staff/staffdashboard");
-    } else if (user.role === "admin") {
+    } else if (user.role.toLowerCase() === "admin") {
       navigate("/admin/admindashboard");
-    } else if (user.role === "guest" || user.role === "guest") {
-      navigate("/guestdashboard");
+    } else if (user.role.toLowerCase() === "guest") {
+      navigate("/guest/guestdashboard");
     }
   };
 
@@ -51,7 +54,7 @@ const RoleSelection: React.FC = () => {
     <div className="background">
       <div className="login-container">
         <div className="branding">
-          <h1 className="brand-title">CAPIZ PROVINCIAL LIBRARY</h1>
+          <h1 className="brand-title">CAPIZ PROVINCIAL E-LIBRARY SYSTEM</h1>
         </div>
 
         <div className="role-selection">
@@ -70,7 +73,7 @@ const RoleSelection: React.FC = () => {
 
         {selectedRole && (
           <LoginModal
-            role={selectedRole} // ✅ lowercase role
+            role={selectedRole} // lowercase role
             onClose={() => setSelectedRole(null)}
             onLoginSuccess={handleLoginSuccess}
           />

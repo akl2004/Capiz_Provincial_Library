@@ -143,22 +143,35 @@ const AddPatronModal: React.FC<{ onClose: () => void; onSave: () => void }> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await AxiosInstance.post("/patrons", {
-        patron_id: patronId,
-        first_name: firstName,
-        middle_name: middleName,
-        last_name: lastName,
-        suffix,
-        email,
-        number,
-        age,
-        gender,
-        province,
-        city,
-        barangay,
-        address: `${barangay}, ${city}, ${province}`,
-        notes,
-      });
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        console.error("No auth token found!");
+        return;
+      }
+      await AxiosInstance.post(
+        "/patrons",
+        {
+          patron_id: patronId,
+          first_name: firstName,
+          middle_name: middleName,
+          last_name: lastName,
+          suffix,
+          email,
+          number,
+          age,
+          gender,
+          province,
+          city,
+          barangay,
+          address: `${barangay}, ${city}, ${province}`,
+          notes,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`, 
+          },
+        }
+      );
       onSave();
       onClose();
     } catch (error) {
@@ -361,7 +374,6 @@ const AddPatronModal: React.FC<{ onClose: () => void; onSave: () => void }> = ({
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Enter any additional notes"
-              required
             />
           </div>
 
@@ -403,7 +415,7 @@ const Patron = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const patronsPerPage = 5;
+  const patronsPerPage = 10;
 
   const filterRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -424,6 +436,7 @@ const Patron = () => {
   };
 
   useEffect(() => {
+    document.title = "Patrons";
     fetchPatrons();
   }, [searchTerm]);
 
@@ -506,6 +519,9 @@ const Patron = () => {
     indexOfFirstPatron,
     indexOfLastPatron
   );
+
+  // Get user role (example: from localStorage, adjust as needed)
+  const role = localStorage.getItem("role") || "";
 
   return (
     <div className="copies-info mt-4">
@@ -633,7 +649,13 @@ const Patron = () => {
             {currentPatrons.map((patron, index) => (
               <tr
                 key={patron.id}
-                onClick={() => navigate(`/admin/patrons/${patron.id}`)}
+                onClick={() => {
+                  if (role === "admin") {
+                    navigate(`/admin/patrons/${patron.id}`);
+                  } else if (role === "staff") {
+                    navigate(`/staff/patrons/${patron.id}`);
+                  }
+                }}
               >
                 <td>{indexOfFirstPatron + index + 1}</td>
                 <td>{patron.patron_id || "N/A"}</td>
@@ -738,9 +760,15 @@ const Patron = () => {
           }}
         >
           <button
-            onClick={() =>
-              openMenu && navigate(`/patrons/${openMenu}/transactions`)
-            }
+            onClick={() => {
+              if (openMenu) {
+                if (role === "admin") {
+                  navigate(`/admin/patrons/${openMenu}`);
+                } else if (role === "staff") {
+                  navigate(`/staff/patrons/${openMenu}`);
+                }
+              }
+            }}
           >
             <i className="bi bi-eye"></i> View
           </button>

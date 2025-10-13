@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
 import AxiosInstance from "../../../AxiosInstance";
 import Barcode from "react-barcode";
+import { useNavigate } from "react-router-dom";
 
 interface Copy {
   copy_number: number;
   barcode: string;
+  cataloging_note: string;
+  internal_note: string;
+  source_person: string;
+  source: string;
+  material_type: string;
 }
 
 const BookForm: React.FC = () => {
@@ -74,8 +80,11 @@ const BookForm: React.FC = () => {
     setOtherAuthorsEditors(updated);
   };
 
+  const navigate = useNavigate();
+
   // Fetch dropdown options
   useEffect(() => {
+    document.title = "Add Book";
     AxiosInstance.get("/dropdown-options").then((res) => {
       setSections(res.data.sections || []);
       setSources(res.data.sources || []);
@@ -98,20 +107,28 @@ const BookForm: React.FC = () => {
     const generatedCopies: Copy[] = Array.from({ length: copies }, (_, i) => ({
       copy_number: i + 1,
       barcode: generateBarcode(),
+      cataloging_note: "",
+      internal_note: "",
+      source_person: "",
+      source: "",
+      material_type: "",
     }));
     setBookCopies(generatedCopies);
   }, [copies]);
+
 
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Prepare FormData
     const formData = new FormData();
     formData.append("person_as_subject", personSubject);
-    topicalSubjects
-      .filter((s) => s.trim() !== "")
-      .forEach((s, i) => formData.append(`topical_subjects[${i}]`, s));
+    // Only non-empty subjects
+    const filteredSubjects = topicalSubjects.filter((s) => s.trim() !== "");
+    filteredSubjects.forEach((subject) => {
+      formData.append("topical_subject[]", subject);
+    });
+
     formData.append("geographical_subject", geographicalSubject);
     formData.append("author", author);
     formData.append("editor", editor);
@@ -147,10 +164,7 @@ const BookForm: React.FC = () => {
     formData.append("material_type", materialType);
     if (coverImage) formData.append("cover_image", coverImage);
 
-    console.log("Selected source:", source);
-
-
-    // Append each copy with its barcode
+    // Append each copy (optional, you can remove if backend auto-generates)
     bookCopies.forEach((c, i) => {
       formData.append(
         `copies_data[${i}][copy_number]`,
@@ -165,7 +179,7 @@ const BookForm: React.FC = () => {
       });
       alert("✅ Book saved successfully!");
       setShowBarcodeModal(true);
-      setBookCopies(res.data.copies || bookCopies);
+      setBookCopies(res.data.book?.copies || bookCopies);
     } catch (error: any) {
       console.error(
         "❌ Error saving book:",
@@ -640,9 +654,25 @@ const BookForm: React.FC = () => {
           </div>
         </fieldset>
 
-        <button type="submit" className="submit-btn">
-          💾 Save Book
-        </button>
+        <div className="form-actions">
+          <button type="submit" className="submit-btn">
+            Save Book
+          </button>
+          <button
+            type="button"
+            className="cancel-btn"
+            onClick={() => {
+              const role = localStorage.getItem("role")?.toLowerCase();
+              if (role === "admin") {
+                navigate("/admin/cataloging");
+              } else if (role === "staff") {
+                navigate("/staff/cataloging");
+              }
+            }}
+          >
+            Cancel
+          </button>
+        </div>
       </form>
 
       {/* ===== Barcode Modal ===== */}
@@ -683,7 +713,17 @@ const BookForm: React.FC = () => {
                 🖨 Print All
               </button>
               <button
-                onClick={() => setShowBarcodeModal(false)}
+                onClick={() => {
+                  setShowBarcodeModal(false);
+
+                  // Role-based redirect
+                  const role = localStorage.getItem("role")?.toLowerCase();
+                  if (role === "admin") {
+                    navigate("/admin/cataloging");
+                  } else if (role === "staff") {
+                    navigate("/staff/cataloging");
+                  }
+                }}
                 className="submit-btn"
               >
                 Close

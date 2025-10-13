@@ -39,6 +39,7 @@ const Attendance = () => {
 
   useEffect(() => {
     fetchAttendances();
+    document.title = "Attendance";
 
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -64,16 +65,16 @@ const Attendance = () => {
     }
   };
 
-  const handleTimeOut = async (id: number) => {
-    setLoading(true);
-    try {
-      await AxiosInstance.post(`/attendances/${id}/timeout`);
-      fetchAttendances();
-    } catch (err) {
-      console.error(err);
-      setLoading(false);
-    }
-  };
+  // const handleTimeOut = async (id: number) => {
+  //   setLoading(true);
+  //   try {
+  //     await AxiosInstance.post(`/attendances/${id}/timeout`);
+  //     fetchAttendances();
+  //   } catch (err) {
+  //     console.error(err);
+  //     setLoading(false);
+  //   }
+  // };
 
   const matchesDate = (att: Attendance) => {
     if (!filterYear) return true;
@@ -332,8 +333,8 @@ const Attendance = () => {
               <th>Purpose</th>
               <th>Time In</th>
               <th>Time Out</th>
-              <th>Status</th>
-              <th>Action</th>
+              {/* <th>Status</th>
+              <th>Action</th> */}
             </tr>
           </thead>
           <tbody>
@@ -364,7 +365,7 @@ const Attendance = () => {
                       ? new Date(att.time_out).toLocaleString()
                       : "-"}
                   </td>
-                  <td>
+                  {/* <td>
                     <span
                       className={`status-badge ${
                         att.time_out ? "status-out" : "status-in"
@@ -382,7 +383,7 @@ const Attendance = () => {
                         Time Out
                       </button>
                     )}
-                  </td>
+                  </td> */}
                 </tr>
               ))
             ) : (

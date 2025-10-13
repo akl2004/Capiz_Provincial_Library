@@ -23,6 +23,7 @@ const PatronTransactions = () => {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc"); // default latest first
 
   useEffect(() => {
+    document.title = "Patron's Transaction";
     const fetchTransactions = async () => {
       try {
         setLoading(true);

@@ -1,19 +1,19 @@
 import { Link, useLocation } from "react-router-dom";
-import dashboardIcon from "../../assets/gray-icons/dashboard.png";
-import patronIcon from "../../assets/gray-icons/patron.png";
-import catalogingIcon from "../../assets/gray-icons/cataloging.png";
-import accessionIcon from "../../assets/gray-icons/accession.png";
-import circulationIcon from "../../assets/gray-icons/circulation.png";
-import attendanceIcon from "../../assets/gray-icons/attendance.png";
-import reportsIcon from "../../assets/gray-icons/reports.png";
-import elibIcon from "../../assets/cpl_logo.png";
-import dashboardIconActive from "../../assets/icons-black/dashboard.png";
-import patronIconActive from "../../assets/white-icons/patron.png";
-import catalogingIconActive from "../../assets/white-icons/cataloging.png";
-import accessionIconActive from "../../assets/white-icons/accession.png";
-import circulationIconActive from "../../assets/white-icons/circulation.png";
-import attendanceIconActive from "../../assets/icons-black/attendance.png";
-import reportsIconActive from "../../assets/icons-black/reports.png";
+import dashboardIcon from "../../../assets/gray-icons/dashboard.png";
+import patronIcon from "../../../assets/gray-icons/patron.png";
+import catalogingIcon from "../../../assets/gray-icons/cataloging.png";
+import accessionIcon from "../../../assets/gray-icons/accession.png";
+import circulationIcon from "../../../assets/gray-icons/circulation.png";
+import attendanceIcon from "../../../assets/gray-icons/attendance.png";
+import reportsIcon from "../../../assets/gray-icons/reports.png";
+import elibIcon from "../../../assets/cpl_logo.png";
+import dashboardIconActive from "../../../assets/white-icons/dashboard.png";
+import patronIconActive from "../../../assets/white-icons/patron.png";
+import catalogingIconActive from "../../../assets/white-icons/cataloging.png";
+import accessionIconActive from "../../../assets/white-icons/accession.png";
+import circulationIconActive from "../../../assets/white-icons/circulation.png";
+import attendanceIconActive from "../../../assets/white-icons/attendance.png";
+import reportsIconActive from "../../../assets/white-icons/reports.png";
 
 const StaffSidebar = () => {
   const location = useLocation();
@@ -51,7 +51,7 @@ const StaffSidebar = () => {
     },
     {
       name: "Attendance",
-      path: "/staff/dailyattendance",
+      path: "/staff/attendance",
       icon: attendanceIcon,
       activeIcon: attendanceIconActive,
     },

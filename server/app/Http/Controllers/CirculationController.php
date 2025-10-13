@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ActivityLog;
 use App\Models\Circulation;
 use App\Models\BookCopy;
 use App\Models\LibrarySetting;
@@ -16,9 +17,38 @@ class CirculationController extends Controller
     // Show all circulation records
     public function index()
     {
+        // Fetch all circulation records
         $records = Circulation::with(['bookCopy.book', 'patron'])->get();
+
+        // Define fine rate from settings
+        $fineRate = (int) LibrarySetting::getValue('fine_per_day', 5);
+
+        $records = $records->map(function ($rec) use ($fineRate) {
+            $dueDate = $rec->due_date instanceof \Carbon\Carbon
+                ? $rec->due_date
+                : \Carbon\Carbon::parse($rec->due_date);
+
+            $now = now();
+            $overdueBy = ($rec->status === 'borrowed' && $now->gt($dueDate))
+                ? $dueDate->diffInDays($now)
+                : 0;
+
+            $rec->overdue_by = $overdueBy;
+
+            // Only set fine for display if status is borrowed
+            if ($rec->status === 'returned') {
+                $rec->fine = $rec->fine; // leave stored fine
+            } else {
+                $rec->fine = $overdueBy * $fineRate; // for display only
+            }
+
+            return $rec;
+        });
+
         return response()->json($records);
     }
+
+
 
     // Borrow a specific book copy
     public function borrow(Request $request)
@@ -28,11 +58,13 @@ class CirculationController extends Controller
         'patron_id'    => 'required|exists:patrons,patron_id', // validate by custom Patron ID
     ]);
 
+    $user = $request->user();
+
     $bookCopy = BookCopy::findOrFail($validated['book_copy_id']);
     $patron   = Patron::where('patron_id', $validated['patron_id'])->firstOrFail();
 
     // Check patron status
-    if ($patron->status !== 'Active') {
+    if ($patron->status !== 'active') {
         return response()->json([
             'message' => 'Cannot issue book: Patron is deactivated or blocked.'
         ], 403);
@@ -66,6 +98,15 @@ class CirculationController extends Controller
         $bookCopy->update(['status' => 'borrowed']);
     });
 
+    // ✅ Log activity
+        ActivityLog::create([
+            'user_id' => $user->id,
+            'role' => $user->role ?? 'staff',
+            'module' => 'Circulation Module',
+            'action' => 'Processed Issue',
+            'description' => "Borrowed copy of '{$bookCopy->book->title}'"
+        ]);
+
     return response()->json([
         'message' => 'Book copy borrowed successfully',
         'circulation' => $circulation
@@ -74,13 +115,18 @@ class CirculationController extends Controller
 
 
     // Return a borrowed book copy
-    public function return(Request $request, $id)
+    public function return(Request $request)
     {
-        $circulation = Circulation::findOrFail($id);
+        $request->validate([
+            'book_copy_id' => 'required|exists:book_copies,id',
+        ]);
 
-        if ($circulation->status !== 'borrowed') {
-            return response()->json(['message' => 'This record is not currently borrowed'], 400);
-        }
+        $user = $request->user();
+
+        $circulation = Circulation::where('book_copy_id', $request->book_copy_id)
+            ->where('status', 'borrowed')
+            ->latest('issue_date')
+            ->firstOrFail();
 
         $returnDate = now();
 
@@ -88,9 +134,7 @@ class CirculationController extends Controller
             ? $circulation->due_date->diffInDays($returnDate)
             : 0;
 
-        // ✅ Get fine rate from settings (default ₱5/day if not set)
         $fineRate = (int) LibrarySetting::getValue('fine_per_day', 5);
-
         $fine = $overdueBy * $fineRate;
 
         $circulation->update([
@@ -100,27 +144,55 @@ class CirculationController extends Controller
             'status'        => 'returned',
         ]);
 
-        // make ONLY this copy available again
         $circulation->bookCopy->update(['status' => 'available']);
+
+        // ✅ Log activity
+        ActivityLog::create([
+            'user_id' => $user->id,
+            'role' => $user->role ?? 'staff',
+            'module' => 'Circulation Module',
+            'action' => 'Processed Return',
+            'description' => "Returned copy of '{$circulation->bookCopy->book->title}'"
+        ]);
 
         return response()->json([
             'message'     => 'Book copy returned successfully',
-            'circulation' => $circulation
+            'circulation' => $circulation,
         ]);
     }
 
-    // Renew a borrowed book copy (extend due date)
-    public function renew($id)
-    {
-        $circulation = Circulation::findOrFail($id);
 
+    // Renew a borrowed book copy (extend due date)
+    public function renew(Request $request)
+    {
+        // Validate input
+        $request->validate([
+            'book_copy_id' => 'required|exists:book_copies,id',
+        ]);
+
+        $user = $request->user();
+
+        // Find the latest borrowed circulation for this book copy
+        $circulation = Circulation::where('book_copy_id', $request->book_copy_id)
+            ->where('status', 'borrowed')
+            ->latest('issue_date')
+            ->firstOrFail();
+
+        // Ensure the book is currently borrowed
         if ($circulation->status !== 'borrowed') {
             return response()->json(['message' => 'This record is not currently borrowed'], 400);
         }
 
-        // ✅ Get loan days, fine rate & renewal limit from settings
+        // Prevent renewal if there is an unpaid fine
+        if ($circulation->fine > 0) {
+            return response()->json([
+                'message' => 'Cannot renew book: Please settle the outstanding fine first.',
+                'fine' => $circulation->fine
+            ], 400);
+        }
+
+        // Get loan days & renewal limit from settings
         $loanDays = (int) LibrarySetting::getValue('default_loan_days', 5);
-        $fineRate = (int) LibrarySetting::getValue('fine_per_day', 5);
         $renewalLimit = (int) LibrarySetting::getValue('renewal_limit', 2);
 
         // Check renewal count
@@ -128,27 +200,28 @@ class CirculationController extends Controller
             return response()->json(['message' => 'Maximum renewal limit reached'], 400);
         }
 
-        $now = now();
-        $fine = 0;
+        // Extend due date
+        $dueDate = $circulation->due_date instanceof Carbon
+            ? $circulation->due_date
+            : Carbon::parse($circulation->due_date);
 
-        if ($now->gt($circulation->due_date)) {
-            // Overdue → fine is applied, new due date starts from today
-            $overdueBy = $circulation->due_date->diffInDays($now);
-            $fine = $overdueBy * $fineRate;
-            $newDueDate = $now->copy()->addDays($loanDays);
-        } else {
-            // On time → extend from current due date
-            $overdueBy = 0;
-            $newDueDate = $circulation->due_date->copy()->addDays($loanDays);
-        }
+        $newDueDate = $dueDate->copy()->addDays($loanDays);
 
+        // Update circulation
         $circulation->update([
-            'renewal_date' => $now,
+            'renewal_date' => now(),
             'renewal_count' => $circulation->renewal_count + 1,
             'due_date' => $newDueDate,
-            'overdue_by' => $overdueBy,
-            'fine' => $circulation->fine + $fine,
             'status' => 'borrowed',
+        ]);
+
+        // ✅ Log activity
+        ActivityLog::create([
+            'user_id' => $user->id,
+            'role' => $user->role ?? 'staff',
+            'module' => 'Circulation Module',
+            'action' => 'Processed Renewal',
+            'description' => "Renewed copy of '{$circulation->bookCopy->book->title}'"
         ]);
 
         return response()->json([
@@ -156,6 +229,8 @@ class CirculationController extends Controller
             'circulation' => $circulation
         ]);
     }
+
+
 
 
     // Reports: number of borrowed, returned, overdue
@@ -195,6 +270,97 @@ class CirculationController extends Controller
             });
 
         return response()->json($transactions);
+    }
+
+    
+    public function getBorrowedBookByBarcode($barcode)
+    {
+        $bookCopy = BookCopy::with('book')->where('barcode', $barcode)->firstOrFail();
+
+        // Find the latest borrowed circulation record for this copy
+        $circulation = Circulation::with('patron')
+            ->where('book_copy_id', $bookCopy->id)
+            ->where('status', 'borrowed')
+            ->latest('issue_date')
+            ->first();
+
+        if (!$circulation) {
+            return response()->json([
+                'message' => 'This book is not currently borrowed.'
+            ], 404);
+        }
+
+        // Ensure due_date is a Carbon instance
+        $dueDate = $circulation->due_date instanceof \Carbon\Carbon
+            ? $circulation->due_date
+            : \Carbon\Carbon::parse($circulation->due_date);
+
+        $now = now();
+        $overdueBy = $now->gt($dueDate) ? $dueDate->diffInDays($now) : 0;
+
+        $fineRate = (int) LibrarySetting::getValue('fine_per_day', 5);
+        $fine = $overdueBy * $fineRate;
+
+        // Attach patron info and overdue/fine
+        $bookCopyArray = $bookCopy->toArray();
+        $bookCopyArray['borrowed_by'] = [
+            'patron_id'   => $circulation->patron->patron_id,
+            'first_name'  => $circulation->patron->first_name,
+            'middle_name' => $circulation->patron->middle_name,
+            'last_name'   => $circulation->patron->last_name,
+            'suffix'      => $circulation->patron->suffix,
+        ];
+        $bookCopyArray['overdue_by'] = $overdueBy;
+        $bookCopyArray['fine'] = $fine;
+        $bookCopyArray['issue_date'] = $circulation->issue_date;
+        $bookCopyArray['due_date'] = $circulation->due_date;
+        $bookCopyArray['renewal_date'] = $circulation->renewal_date;
+
+
+        return response()->json($bookCopyArray);
+    }
+
+    // Get circulation history of a specific book copy
+    public function copyHistory($copyId)
+    {
+        $fineRate = (int) LibrarySetting::getValue('fine_per_day', 5);
+
+        $history = Circulation::with('patron')
+            ->where('book_copy_id', $copyId)
+            ->orderBy('issue_date', 'desc')
+            ->get()
+            ->map(function ($rec) use ($fineRate) {
+                $dueDate = $rec->due_date instanceof \Carbon\Carbon
+                    ? $rec->due_date
+                    : \Carbon\Carbon::parse($rec->due_date);
+
+                $returnDate = $rec->date_returned
+                    ? ($rec->date_returned instanceof \Carbon\Carbon
+                        ? $rec->date_returned
+                        : \Carbon\Carbon::parse($rec->date_returned))
+                    : null;
+
+                $now = now();
+                $overdueBy = ($rec->status === 'borrowed' && $now->gt($dueDate))
+                    ? $dueDate->diffInDays($now)
+                    : 0;
+
+                $fine = $rec->status === 'returned'
+                    ? ($rec->fine ?? 0)
+                    : $overdueBy * $fineRate;
+
+                return [
+                    'id'           => $rec->id,
+                    'borrower'     => $rec->patron->first_name . ' ' . $rec->patron->last_name,
+                    'issue_date'   => $rec->issue_date,
+                    'due_date'     => $rec->due_date,
+                    'return_date'  => $returnDate,
+                    'fine'         => $fine,
+                    'status'       => $rec->status,
+                ];
+            });
+
+        return response()->json($history);
     }
 
 

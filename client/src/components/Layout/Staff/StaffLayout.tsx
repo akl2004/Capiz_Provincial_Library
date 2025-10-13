@@ -1,31 +1,50 @@
 import React, { useState, useEffect } from "react";
-import AxiosInstance from "../../../AxiosInstance";
+import { Outlet } from "react-router-dom";
 import StaffSidebar from "./StaffSidebar";
+import AxiosInstance from "../../../AxiosInstance";
 import Header from "../Admin/Header";
 
 interface StaffLayoutProps {
-  content: React.ReactNode;
+  content?: React.ReactNode; // make optional
 }
 
 const StaffLayout = ({ content }: StaffLayoutProps) => {
   const [user, setUser] = useState<{
-    name: string;
+    first_name: string;
+    middle_name?: string | null;
+    last_name: string;
+    suffix?: string | null;
     avatar: string;
     role: string;
+    name?: string | null;
   }>({
-    name: "Guest",
+    first_name: "Guest",
+    middle_name: null,
+    last_name: "",
+    suffix: null,
     avatar: "./src/assets/lib-logo.png",
     role: "guest",
+    name: "Guest",
   });
 
   useEffect(() => {
     const token = localStorage.getItem("authToken");
-    if (!token) return; // no token → stay as guest
+    if (!token) return;
 
     AxiosInstance.get("/user", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => setUser(res.data))
+      .then((res) => {
+        setUser({
+          first_name: res.data.first_name || "Guest",
+          middle_name: res.data.middle_name || null,
+          last_name: res.data.last_name || "",
+          suffix: res.data.suffix || null,
+          avatar: res.data.avatar || "./src/assets/lib-logo.png",
+          role: res.data.role || "guest",
+          name: res.data.name || `${res.data.first_name} ${res.data.last_name}`,
+        });
+      })
       .catch((err) => console.error("Failed to fetch user info", err));
   }, []);
 
@@ -37,18 +56,32 @@ const StaffLayout = ({ content }: StaffLayoutProps) => {
 
       <div className="admin-main">
         <Header
-          user={user || { name: "Guest", avatar: "./src/assets/lib-logo.png" }}
+          user={{
+            first_name: user.first_name,
+            middle_name: user.middle_name,
+            last_name: user.last_name,
+            suffix: user.suffix,
+            avatar: user.avatar,
+            role: user.role,
+            name: user.name,
+          }}
           onLogout={() => {
             localStorage.removeItem("authToken");
             setUser({
-              name: "Guest",
+              first_name: "Guest",
+              middle_name: null,
+              last_name: "",
+              suffix: null,
               avatar: "./src/assets/lib-logo.png",
               role: "guest",
             });
           }}
         />
 
-        <main className="admin-content">{content}</main>
+        <main className="admin-content">
+          {/* Render standalone content OR nested route content */}
+          {content ? content : <Outlet />}
+        </main>
       </div>
     </div>
   );

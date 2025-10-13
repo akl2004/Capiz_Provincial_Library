@@ -1,55 +1,65 @@
-import React, { useState, useEffect } from "react";
-import AxiosInstance from "../../../AxiosInstance";
-import StaffSidebar from "./GuestSidebar";
-import Header from "../Admin/Header";
+import React from "react";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import elibIcon from "../../../assets/cpl_logo.png";
 
-interface StaffLayoutProps {
-  content: React.ReactNode;
+interface GuestLayoutProps {
+  content?: React.ReactNode;
 }
 
-const GuestLayout = ({ content }: StaffLayoutProps) => {
-  const [user, setUser] = useState<{
-    name: string;
-    avatar: string;
-    role: string;
-  }>({
-    name: "Guest",
-    avatar: "./src/assets/lib-logo.png",
-    role: "guest",
-  });
+const GuestLayout = ({ content }: GuestLayoutProps) => {
+  const location = useLocation();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const token = localStorage.getItem("authToken");
-    if (!token) return; // no token → stay as guest
+  const navItems = [
+    { name: "Home", path: "/guest/guestdashboard" },
+    { name: "Attendance", path: "/guest/dailyattendance" },
+    { name: "About", path: "/guest/about" },
+  ];
 
-    AxiosInstance.get("/user", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => setUser(res.data))
-      .catch((err) => console.error("Failed to fetch user info", err));
-  }, []);
+  const handleLogout = () => {
+    localStorage.removeItem("authToken");
+    navigate("/login");
+  };
 
   return (
-    <div className="admin-layout">
-      <div className="admin-sidebar">
-        <StaffSidebar />
-      </div>
+    <div className="guest-layout">
+      {/* Top Navigation */}
+      <div className="guest-navbar">
+        {/* Left: Logo + Title */}
+        <div className="guest-logo">
+          <img src={elibIcon} alt="E-LIB" />
+          <h1>CAPIZ E-LIB</h1>
+        </div>
 
-      <div className="admin-main">
-        <Header
-          user={user || { name: "Guest", avatar: "./src/assets/lib-logo.png" }}
-          onLogout={() => {
-            localStorage.removeItem("authToken");
-            setUser({
-              name: "Guest",
-              avatar: "./src/assets/lib-logo.png",
-              role: "guest",
-            });
+        {/* Center: Tabs */}
+        <div className="guest-tabs">
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              to={item.path}
+              className={`guest-tab ${
+                location.pathname === item.path ? "active" : ""
+              }`}
+            >
+              {item.name}
+            </Link>
+          ))}
+        </div>
+
+        {/* Right: Logout */}
+        <button
+          className="guest-logout"
+          onClick={() => {
+            localStorage.removeItem("authToken"); // remove token
+            navigate("/"); // go to role selection
           }}
-        />
-
-        <main className="admin-content">{content}</main>
+        >
+          LOG OUT ↩
+        </button>
       </div>
+
+      {/* Page Content */}
+      <main className="guest-content">{content ? content : <Outlet />}</main>
     </div>
   );
 };

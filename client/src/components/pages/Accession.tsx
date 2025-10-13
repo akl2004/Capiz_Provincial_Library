@@ -10,20 +10,20 @@ interface BookCopy {
   copy_number: string;
   material_type: string;
   barcode: string;
-  funding_source: string;
+  source: string;
+  source_person: string;
   cataloging_note: string;
-  internal_notes: string;
+  internal_note: string;
 }
 
 interface Book {
   id: number;
-  coverImage: string;
+  cover_image: string;
   title: string;
   authors: string[];
   edition: string | null;
   volume: string | null;
   number_of_pages: number | null;
-  source: string;
   section: string;
   dewey_decimal: string;
   created_at: string;
@@ -38,12 +38,12 @@ interface FlattenedCopy {
   section: string;
   source: string;
   created_at: string;
-  coverImage?: string;
+  cover_image?: string | null;
   material_type?: string;
   barcode?: string;
-  funding_source?: string;
+  source_person?: string;
   cataloging_note?: string;
-  internal_notes?: string;
+  internal_note?: string;
 }
 
 const Accession = () => {
@@ -63,7 +63,7 @@ const Accession = () => {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const copiesPerPage = 5;
+  const copiesPerPage = 10;
 
   const [selectedCopy, setSelectedCopy] = useState<FlattenedCopy | null>(null);
   const sliderRef = useRef<HTMLDivElement | null>(null);
@@ -110,14 +110,16 @@ const Accession = () => {
       copy_number: copy.copy_number,
       title: book.title,
       section: book.section,
-      source: book.source,
+      source: copy.source,
       created_at: book.created_at,
-      coverImage: book.coverImage,
+      cover_image: book.cover_image
+        ? `http://localhost:8000/storage/${book.cover_image}`
+        : null,
       material_type: copy.material_type,
       barcode: copy.barcode,
-      funding_source: copy.funding_source,
+      source_person: copy.source_person,
       cataloging_note: copy.cataloging_note,
-      internal_notes: copy.internal_notes,
+      internal_note: copy.internal_note,
     }))
   );
 
@@ -645,16 +647,26 @@ const Accession = () => {
           </button>
           <div className="slider-image-title">
             <img
-              src={selectedCopy.coverImage || coverPlaceholder}
+              src={
+                selectedCopy.cover_image
+                  ? selectedCopy.cover_image
+                  : coverPlaceholder
+              }
               alt={selectedCopy.title}
+              className="img-fluid"
+              style={{
+                maxHeight: "200px",
+                objectFit: "contain",
+                width: "80%",
+              }}
               onError={(e) => {
                 (e.currentTarget as HTMLImageElement).src = coverPlaceholder;
               }}
             />
+
             <h5>{selectedCopy.title}</h5>
           </div>
-          <hr />
-          <div className="slider-details">
+          <div className="slider-details mt-4">
             {[
               ["Accession No", selectedCopy.accession_number],
               ["Section", selectedCopy.section],
@@ -668,9 +680,9 @@ const Accession = () => {
                   : "-",
               ],
               ["Source of Acquisition", selectedCopy.source || "-"],
-              ["Funding Source", selectedCopy.funding_source || "-"],
+              ["Funding Source", selectedCopy.source_person || "-"],
               ["Cataloging Note", selectedCopy.cataloging_note || "-"],
-              ["Internal Notes", selectedCopy.internal_notes || "-"],
+              ["Internal Notes", selectedCopy.internal_note || "-"],
             ].map(([label, value]) => (
               <div className="detail-row" key={label}>
                 <span className="detail-label">{label}:</span>

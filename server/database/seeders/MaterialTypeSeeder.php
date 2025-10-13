@@ -11,6 +11,14 @@ class MaterialTypeSeeder extends Seeder {
             ['name' => 'Book'],
             ['name' => 'Magazine'],
             ['name' => 'Journal'],
+            ['name' => 'Thesis'],
+            ['name' => 'Newspaper'],
+            ['name' => 'Audio-Visual'],
+            ['name' => 'E-Resource'],
+            ['name' => 'Manuscript'],
+            ['name' => 'Map'],
+            ['name' => 'Microform'],
+            ['name' => 'Other']
         ];
 
         foreach ($types as $type) {

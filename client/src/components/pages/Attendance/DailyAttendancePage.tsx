@@ -21,6 +21,7 @@ interface Attendance {
 }
 
 const DailyAttendancePage = () => {
+  const [mode, setMode] = useState("guest"); // 'guest' or 'patron'
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [attendances, setAttendances] = useState<Attendance[]>([]);
@@ -44,10 +45,11 @@ const DailyAttendancePage = () => {
   const navigate = useNavigate();
 
   const location = useLocation();
-  const isGuest = location.pathname.startsWith("/guest"); 
+  const isGuest = location.pathname.startsWith("/guest");
 
   useEffect(() => {
     fetchTodayAttendances();
+    document.title = "Daily Attendance";
   }, []);
 
   const fetchTodayAttendances = async () => {
@@ -177,20 +179,28 @@ const DailyAttendancePage = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
+          {/* Get role from localStorage or another source */}
           {!isGuest && (
             <button
               className="btn btn-outline-secondary"
-              onClick={() => navigate("/admin/dailyattendance/attendance")}
+              onClick={() => {
+                const role = localStorage.getItem("role");
+                if (role === "admin") {
+                  navigate("/admin/dailyattendance/attendance");
+                } else if (role === "staff") {
+                  navigate("/staff/dailyattendance/attendance");
+                }
+              }}
             >
               View All Attendance
             </button>
           )}
+
           <button className="btn btn-secondary" onClick={() => setOpen(true)}>
             + Time In
           </button>
         </div>
       </div>
-
       {/* Attendance Table */}
       <div className="overflow-x-auto">
         <table className="attendance-table">
@@ -257,50 +267,66 @@ const DailyAttendancePage = () => {
         </table>
       </div>
 
-      {/* Modal */}
       {open && (
-        <div className="modal-overlay">
-          <div className="modal-box">
+        <div className="attendance-modal-overlay">
+          <div className="attendance-modal-box">
             <button
               onClick={() => setOpen(false)}
-              className="modal-close-btn"
+              className="attendance-modal-close-btn"
               disabled={loading}
             >
               &times;
             </button>
-            <h2>Guest Time In</h2>
+
+            {/* Header */}
+            <div className="attendance-modal-header text-center mb-0">
+              <h3 className="mb-0">TIME IN</h3>
+              <p>
+                <i>Fill in the information below to record your attendance.</i>
+              </p>
+            </div>
+
+            {/* Tabs to select Guest or Patron (below header) */}
+            <div className="attendance-modal-tabs mb-1 text-center">
+              <button
+                className={`tab ${mode === "guest" ? "active" : ""}`}
+                onClick={() => setMode("guest")}
+                type="button"
+              >
+                GUEST
+              </button>
+              <button
+                className={`tab ${mode === "patron" ? "active" : ""}`}
+                onClick={() => setMode("patron")}
+                type="button"
+              >
+                PATRON
+              </button>
+            </div>
+
             {loading ? (
               <LoadingSpinner />
             ) : (
               <form onSubmit={handleSubmit} className="attendance-form">
-                {/* Patron Section (optional) */}
-                <div className="patron-section">
-                  <label className="patronId">
-                    Patron ID (optional)
-                    <span
-                      title="Only for registered patrons. Leave blank if you are a walk-in guest."
-                      style={{ marginLeft: "5px", cursor: "help" }}
-                    >
-                      <i className="bi bi-info-circle"></i>
-                    </span>
-                  </label>
-                  <input
-                    id="patronId"
-                    name="patronId"
-                    value={form.patronId}
-                    onChange={(e) => handlePatronIdChange(e.target.value)}
-                    placeholder="Enter Patron ID..."
-                    disabled={loading}
-                  />
-                </div>
-
-                {/* Divider for visual separation */}
-                <hr />
+                {/* Patron Section */}
+                {mode === "patron" && (
+                  <div className="patron-section mb-0">
+                    <label>Patron ID</label>
+                    <input
+                      id="patronId"
+                      name="patronId"
+                      value={form.patronId}
+                      onChange={(e) => handlePatronIdChange(e.target.value)}
+                      placeholder="Enter Patron ID..."
+                      disabled={loading}
+                    />
+                  </div>
+                )}
 
                 {/* Name Row */}
                 <div className="name-row mb-0">
                   <input
-                    name="firstName"
+                    name="first_name"
                     value={form.first_name}
                     onChange={handleChange}
                     placeholder="First Name"
@@ -308,14 +334,14 @@ const DailyAttendancePage = () => {
                     disabled={loading}
                   />
                   <input
-                    name="middleName"
+                    name="middle_name"
                     value={form.middle_name}
                     onChange={handleChange}
                     placeholder="Middle Name"
                     disabled={loading}
                   />
                   <input
-                    name="lastName"
+                    name="last_name"
                     value={form.last_name}
                     onChange={handleChange}
                     placeholder="Last Name"

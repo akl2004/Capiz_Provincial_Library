@@ -1,8 +1,8 @@
 import { useEffect } from "react";
 
-const GuestDashboard = () => {
+const StaffDashboard = () => {
   useEffect(() => {
-    document.title = "Guest Dashboard";
+    document.title = "Staff Dashboard";
   }, []);
 
   return (
@@ -13,4 +13,4 @@ const GuestDashboard = () => {
   );
 };
 
-export default GuestDashboard;
+export default StaffDashboard;

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\LibrarySetting;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\LoginLog;
@@ -21,7 +22,13 @@ class AuthController extends Controller
         return response()->json(['message' => 'Invalid credentials'], 401);
     }
 
-    $user = Auth::user();
+    $user = User::find(Auth::id());
+
+    // Update last_login_at in users table
+    $timezone = LibrarySetting::getValue('default_timezone', 'Asia/Manila');
+    $user->last_login_at = now($timezone);
+    $user->save();
+
 
     // ✅ Check role matches the selected role
     if (strtolower($user->role) !== strtolower($request->role)) {
@@ -48,7 +55,7 @@ class AuthController extends Controller
         'message' => 'Login successful',
         'token' => $token,
         'role' => $user->role,
-        'name' => $user->name,
+        'name' => $user->first_name . ' ' . $user->last_name,
         'status' => $user->status,
     ], 200);
 }

@@ -20,10 +20,12 @@ const LoginModal: React.FC<LoginModalProps> = ({
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false); // new state
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setLoading(true); 
 
     try {
       const response = await AxiosInstance.post("/login", {
@@ -49,6 +51,8 @@ const LoginModal: React.FC<LoginModalProps> = ({
       setError(
         err.response?.data?.message || "Invalid credentials. Please try again."
       );
+    } finally {
+      setLoading(false); // always stop spinner
     }
   };
 
@@ -92,9 +96,11 @@ const LoginModal: React.FC<LoginModalProps> = ({
             <label htmlFor="show-password-checkbox">Show password</label>
           </div>
 
-          <button type="submit" className="login-btn">
-            Log In
+          <button type="submit" className="login-btn" disabled={loading}>
+            {loading && <span className="spinner-tiny"></span>}
+            {loading ? "Logging in..." : "Log In"}
           </button>
+
           <button type="button" className="exit-btn" onClick={onClose}>
             Cancel
           </button>

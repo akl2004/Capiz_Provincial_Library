@@ -2,6 +2,7 @@
 
 // use App\Http\Controllers\Api\AuthController;
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AuthController;
 use Illuminate\Http\Request;
@@ -36,34 +37,68 @@ Route::get('/dropdown-options', [DropdownController::class, 'index']);
 
 // Book routes
 Route::get('/books', [BookController::class, 'index']);    //fetch all books
-Route::post('/books', [BookController::class, 'store']);   // add new book
+// Route::post('/books', [BookController::class, 'store']);
+Route::get('/books/latest', [BookController::class, 'latest']);
+Route::get('/books/search', [BookController::class, 'search']); //fetches searched books
 Route::get('/books/{id}', [BookController::class, 'show']);  // fetch single book
+// Route::post('/books/{id}/add-copy', [BookController::class, 'addCopy']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/books', [BookController::class, 'store']);   // Add new book
+    Route::post('/books/{id}/add-copy', [BookController::class, 'addCopy']); // Add book copy
+});
 
 // ✅ Extra Patron routes
-Route::get('/patrons/generate-id', [PatronController::class, 'generatePatronId']);
-Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
-Route::get('/patrons/{id}/stats', [PatronController::class, 'stats']);
-Route::patch('/patrons/{id}/deactivate', [PatronController::class, 'deactivate']);
+// Route::get('/patrons/generate-id', [PatronController::class, 'generatePatronId']);
+// Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
+// Route::get('/patrons/{id}/stats', [PatronController::class, 'stats']);
+// Route::patch('/patrons/{id}/deactivate', [PatronController::class, 'deactivate']);
 
 // ✅ Standard Patron routes
-Route::get('/patrons', [PatronController::class, 'index']);
-Route::post('/patrons', [PatronController::class, 'store']);
-Route::get('/patrons/{id}', [PatronController::class, 'show']);
-Route::put('/patrons/{id}', [PatronController::class, 'update']);
-Route::delete('/patrons/{id}', [PatronController::class, 'destroy']);  
+// Route::get('/patrons', [PatronController::class, 'index']);
+// Route::middleware('auth:sanctum')->post('/patrons', [PatronController::class, 'store']);
+// Route::post('/patrons', [PatronController::class, 'store']);
+// Route::get('/patrons/{id}', [PatronController::class, 'show']);
+// Route::put('/patrons/{id}', [PatronController::class, 'update']);
+// Route::delete('/patrons/{id}', [PatronController::class, 'destroy']);  
+
+
+Route::middleware('auth:sanctum')->group(function () {
+    
+    Route::get('/patrons/generate-id', [PatronController::class, 'generatePatronId']);
+    Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
+    Route::get('/patrons/{id}/stats', [PatronController::class, 'stats']);
+    Route::patch('/patrons/{id}/deactivate', [PatronController::class, 'deactivate']);
+    
+    Route::get('/patrons', [PatronController::class, 'index']);
+    Route::post('/patrons', [PatronController::class, 'store']);
+    Route::get('/patrons/{id}', [PatronController::class, 'show']);
+    Route::put('/patrons/{id}', [PatronController::class, 'update']);
+    Route::delete('/patrons/{id}', [PatronController::class, 'destroy']);
+});
+
 
 
 // Circulation routes
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/circulations/borrow', [CirculationController::class, 'borrow']);
+    Route::post('/circulations/return', [CirculationController::class, 'return']);
+    Route::post('/circulations/renew', [CirculationController::class, 'renew']);
+});
+
 Route::get('/circulations', [CirculationController::class, 'index']);        // list all circulations
-// Route::post('/circulations', [CirculationController::class, 'store']);    // issue a book (borrow)
-Route::post('/circulations/borrow', [CirculationController::class, 'borrow']); // borrow a book
+// Route::post('/circulations/borrow', [CirculationController::class, 'borrow']);
 Route::get('/circulations/{id}', [CirculationController::class, 'show']);    // view single circulation record
-Route::put('/circulations/{id}/renew', [CirculationController::class, 'renew']); // renew circulation
-Route::put('/circulations/{id}/return', [CirculationController::class, 'returnBook']); // return a book
 Route::put('/circulations/{id}/mark-lost', [CirculationController::class, 'markLost']); // mark book as lost
 Route::get('/patrons/{id}/transactions', [CirculationController::class, 'patronTransactions']); // fetch patrons transaction
+Route::get('/copies/{copyId}/history', [CirculationController::class, 'copyHistory']); //fetches all transaction of a book
+// Route::post('/circulations/return', [CirculationController::class, 'return']);
+// Route::post('/circulations/renew', [CirculationController::class, 'renew']); 
 
 Route::get('/books/copy/{barcode}', [BookController::class, 'getByBarcode']);
+
+Route::get('/circulations/borrowed-book/{barcode}', [CirculationController::class, 'getBorrowedBookByBarcode']);
+
 
 
 // Attendance routes
@@ -88,36 +123,12 @@ Route::post('/settings/fine-per-day', [LibrarySettingController::class, 'updateF
 // Renewal Limit
 Route::get('/settings/renewal-limit', [LibrarySettingController::class, 'getRenewalLimit']);
 Route::post('/settings/renewal-limit', [LibrarySettingController::class, 'updateRenewalLimit']);
+// Timezone
+Route::get('/settings/timezone', [LibrarySettingController::class, 'getTimezone']);
+Route::post('/settings/timezone', [LibrarySettingController::class, 'updateTimezone']);
 
 
-
-
-// Route::get('/patrons/by-id/{patron_id}', [PatronController::class, 'getByPatronId']);
-// Route::apiResource('patrons', PatronController::class);
-
-
-
-
-// Route::controller(AuthController::class)->group(function () {
-//     Route::post('/login', 'login');
-// });
-
-// Route::middleware('auth:sanctum')->group(function () {
-//     Route::controller(AuthController::class)->group(function () {
-//         Route::get('/user', 'user');
-//         Route::post('/logout', 'logout');
-//     });
-
-    
-
-//     Route::controller(UserController::class)->group(function () {
-//         Route::get('/loadUsers', 'loadUsers');
-//         Route::post('/storeUser', 'storeUser');
-//         Route::put('/updateUser/{user}', 'updateUser');
-//         Route::put('/destroyUser/{user}', 'destroyUser');
-//     });
-// });
-
-// Route::get('/user', function (Request $request) {
-//     return $request->user();
-// })->middleware('auth:sanctum');
+//Activity Logs
+Route::get('/activity-logs', [ActivityLogController::class, 'index']);
+Route::get('/staff/{id}/activity-logs', [ActivityLogController::class, 'getStaffLogs']); // ✅ for individual staff
+Route::post('/activity-logs', [ActivityLogController::class, 'store']);

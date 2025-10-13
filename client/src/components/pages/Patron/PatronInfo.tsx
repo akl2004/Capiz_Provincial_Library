@@ -43,6 +43,7 @@ const PatronInfo = () => {
   };
 
   useEffect(() => {
+    document.title = "Patron Information";
     if (!id) return;
 
     setLoading(true);
@@ -72,7 +73,14 @@ const PatronInfo = () => {
   return (
     <div>
       <button
-        onClick={() => navigate("/admin/patrons")}
+        onClick={() => {
+          const role = localStorage.getItem("role")?.toLowerCase();
+          if (role === "admin") {
+            navigate("/admin/patrons");
+          } else if (role === "staff") {
+            navigate("/staff/patrons");
+          }
+        }}
         className="py-2 px-4 mb-4 bg-gray-200 hover:bg-gray-300 rounded"
       >
         ← Back

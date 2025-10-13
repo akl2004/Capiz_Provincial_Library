@@ -35,4 +35,10 @@ class BookCopy extends Model
     {
         return $this->belongsTo(Book::class);
     }
+
+    public function circulations()
+{
+    return $this->hasMany(Circulation::class);
+}
+
 }

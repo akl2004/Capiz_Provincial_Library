@@ -10,10 +10,15 @@ interface Book {
   edition: string;
   year: string | number;
   classification: string;
-  image?: string;
-  material_type?: string;
+  cover_image?: string;
   subjects?: string[];
   section?: string;
+  copies?: BookCopy[];
+}
+
+interface BookCopy {
+  book_id: number;
+  material_type: string;
 }
 
 const Cataloging = () => {
@@ -23,6 +28,10 @@ const Cataloging = () => {
   const [books, setBooks] = useState<Book[]>([]);
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [viewMode, setViewMode] = useState<"image" | "list">("image");
+
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const booksPerPage = 10;
 
   const deweyMap: { [key: string]: string } = {
     "000": "General Works",
@@ -61,7 +70,8 @@ const Cataloging = () => {
       const edition = book.edition?.toLowerCase() || "";
       const year = book.year?.toString() || "";
       const classification = book.classification?.toLowerCase() || "";
-      const material_type = book.material_type?.toLowerCase() || "";
+      const material_type =
+        book.copies?.map((c) => c.material_type.toLowerCase()).join(", ") || "";
       const subjects = book.subjects?.join(", ").toLowerCase() || "";
       const section = book.section?.toLowerCase() || "";
 
@@ -78,6 +88,7 @@ const Cataloging = () => {
     });
 
     setFilteredBooks(filtered);
+    setCurrentPage(1);
   }, [searchTerm, books]);
 
   const fetchBooks = async () => {
@@ -89,24 +100,39 @@ const Cataloging = () => {
         ? response.data
         : response.data.data;
 
-      const formattedBooks = booksData.map((book: any) => ({
-        id: book.id,
-        title: book.title,
-        contributor:
-          book.author?.trim() !== ""
-            ? book.author
-            : book.other_author_editor || "N/A",
-        edition: book.edition || "N/A",
-        year: book.copyright || "N/A",
-        classification: getDeweyCategory(book.dewey_decimal),
-        image: book.image || "",
-        material_type: book.material_type || "N/A",
-        subjects: book.subjects || [],
-        section: book.section || "N/A",
-      }));
+      const formattedBooks = booksData.map((book: any) => {
+        let subjects: string[] = [];
+        if (book.topical_subject) {
+          if (Array.isArray(book.topical_subject)) {
+            subjects = book.topical_subject;
+          } else if (typeof book.topical_subject === "string") {
+            try {
+              subjects = JSON.parse(book.topical_subject);
+            } catch {
+              subjects = [book.topical_subject];
+            }
+          }
+        }
+
+        return {
+          id: book.id,
+          title: book.title,
+          contributor:
+            book.author?.trim() !== ""
+              ? book.author
+              : book.other_author_editor || "N/A",
+          edition: book.edition || "N/A",
+          year: book.copyright || "N/A",
+          classification: getDeweyCategory(book.dewey_decimal),
+          cover_image: book.cover_image || "",
+          subjects,
+          section: book.section || "N/A",
+          copies: book.copies || [],
+        };
+      });
 
       setBooks(formattedBooks);
-      setFilteredBooks(formattedBooks); // <-- important to show books initially
+      setFilteredBooks(formattedBooks);
     } catch (error) {
       console.error("Error fetching books:", error);
     } finally {
@@ -114,14 +140,23 @@ const Cataloging = () => {
     }
   };
 
+  // Pagination logic
+  const indexOfLastBook = currentPage * booksPerPage;
+  const indexOfFirstBook = indexOfLastBook - booksPerPage;
+  const currentBooks = filteredBooks.slice(indexOfFirstBook, indexOfLastBook);
+  const totalPages = Math.ceil(filteredBooks.length / booksPerPage);
+
   return (
     <div className="catalog-container">
-      {/* Header: Title + Search + View + Add */}
+      {/* Header */}
       <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h1 className="text-xl font-semibold mb-0">Cataloging Page</h1>
+          <h1 className="text-xl font-semibold mb-0">Catalog</h1>
           <p className="mb-0">
-            <i>Welcome to the cataloging page!</i>
+            <i>
+              This table contains all materials with their bibliographical
+              details.
+            </i>
           </p>
         </div>
 
@@ -163,10 +198,15 @@ const Cataloging = () => {
           </div>
 
           <button
-            type="button"
-            className="btn"
-            style={{ backgroundColor: "#F5C839" }}
-            onClick={() => navigate("/admin/cataloging/addbook")}
+            className="catalog-btn"
+            onClick={() => {
+              const role = localStorage.getItem("role")?.toLowerCase();
+              if (role === "admin") {
+                navigate("/admin/cataloging/addbook");
+              } else if (role === "staff") {
+                navigate("/staff/cataloging/addbook");
+              }
+            }}
           >
             Add New
           </button>
@@ -180,20 +220,34 @@ const Cataloging = () => {
             <LoadingSpinner message="Loading books..." />
           </div>
         ) : viewMode === "image" ? (
-          filteredBooks.length === 0 ? (
+          currentBooks.length === 0 ? (
             <p className="text-center">No books found.</p>
           ) : (
-            filteredBooks.map((book) => (
+            currentBooks.map((book) => (
               <div
                 key={book.id}
                 className="card mb-3 p-3"
-                onClick={() => navigate(`/admin/cataloging/${book.id}`)}
+                onClick={() => {
+                  const role = localStorage.getItem("role")?.toLowerCase();
+                  if (!book.id) return;
+                  const path =
+                    role === "admin"
+                      ? `/admin/cataloging/${book.id}`
+                      : role === "staff"
+                      ? `/staff/cataloging/${book.id}`
+                      : null;
+                  if (path) navigate(path);
+                }}
                 style={{ cursor: "pointer" }}
               >
                 <div className="row">
                   <div className="col-md-2">
                     <img
-                      src={book.image || "/src/assets/cover_placeholder.jpg"}
+                      src={
+                        book.cover_image
+                          ? `http://localhost:8000/storage/${book.cover_image}`
+                          : "/src/assets/cover_placeholder.jpg"
+                      }
                       alt={book.title}
                       className="img-fluid"
                       style={{
@@ -205,7 +259,10 @@ const Cataloging = () => {
                   </div>
                   <div className="description col-md-9">
                     <p className="mb-0">
-                      <strong>Material:</strong> {book.material_type}
+                      <strong>Material:</strong>{" "}
+                      {book.copies && book.copies.length > 0
+                        ? book.copies[0].material_type
+                        : "N/A"}
                     </p>
                     <p className="mb-0">
                       <strong>Title:</strong> {book.title}
@@ -221,7 +278,7 @@ const Cataloging = () => {
                     </p>
                     <p className="mb-0">
                       <strong>Subjects:</strong>{" "}
-                      {book.subjects?.join(", ") || "N/A"}
+                      {book.subjects?.length ? book.subjects.join(", ") : "N/A"}
                     </p>
                     <p className="mb-0">
                       <strong>Section:</strong> {book.section}
@@ -249,26 +306,42 @@ const Cataloging = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredBooks.length === 0 ? (
+              {currentBooks.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="text-center">
                     No books found.
                   </td>
                 </tr>
               ) : (
-                filteredBooks.map((book) => (
+                currentBooks.map((book) => (
                   <tr
                     key={book.id}
                     className="book-row"
-                    onClick={() => navigate(`/admin/cataloging/${book.id}`)}
                     style={{ cursor: "pointer" }}
+                    onClick={() => {
+                      if (!book.id) return;
+                      const role = localStorage.getItem("role")?.toLowerCase();
+                      const path =
+                        role === "admin"
+                          ? `/admin/cataloging/${book.id}`
+                          : role === "staff"
+                          ? `/staff/cataloging/${book.id}`
+                          : null;
+                      if (path) navigate(path);
+                    }}
                   >
-                    <td>{book.material_type}</td>
+                    <td>
+                      {book.copies && book.copies.length > 0
+                        ? book.copies[0].material_type
+                        : "N/A"}
+                    </td>
                     <td>{book.title}</td>
                     <td>{book.contributor}</td>
                     <td>{book.edition}</td>
                     <td>{book.year}</td>
-                    <td>{book.subjects?.join(", ") || "N/A"}</td>
+                    <td>
+                      {book.subjects?.length ? book.subjects.join(", ") : "N/A"}
+                    </td>
                     <td>{book.section}</td>
                     <td>{book.classification}</td>
                   </tr>
@@ -276,6 +349,42 @@ const Cataloging = () => {
               )}
             </tbody>
           </table>
+        )}
+
+        {/* Pagination info */}
+        {filteredBooks.length > 0 && (
+          <div className="pagination-info text-center mb-2 mt-3">
+            Showing {indexOfFirstBook + 1} -{" "}
+            {Math.min(indexOfLastBook, filteredBooks.length)} of{" "}
+            {filteredBooks.length} books
+          </div>
+        )}
+
+        {/* ✅ Pagination controls */}
+        {totalPages > 1 && (
+          <div className="pagination mt-1">
+            <button
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage((p) => p - 1)}
+            >
+              <i className="bi bi-chevron-double-left"></i> Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <button
+                key={i}
+                className={currentPage === i + 1 ? "active" : ""}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </button>
+            ))}
+            <button
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage((p) => p + 1)}
+            >
+              Next <i className="bi bi-chevron-double-right"></i>
+            </button>
+          </div>
         )}
       </div>
     </div>

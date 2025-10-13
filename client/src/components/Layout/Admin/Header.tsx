@@ -42,11 +42,12 @@ const Header = ({ user, onLogout }: HeaderProps) => {
 
   // Breadcrumb labels: remove 'admin' and 'guest' only for display
   const breadcrumbPathnames = pathnames.filter(
-    (x) => x !== "admin" && x !== "guest"
+    (x) => x !== "admin" && x !== "guest" && x !== "staff"
   );
 
   const breadcrumbNameMap: Record<string, string> = {
     admindashboard: "Dashboard",
+    staffdashboard: "Dashboard",
     patrons: "Patrons",
     cataloging: "Cataloging",
     accession: "Accession",
@@ -136,12 +137,6 @@ const Header = ({ user, onLogout }: HeaderProps) => {
         >
           {darkMode ? "☀️" : "🌙"}
         </button>
-
-        <img
-          src="https://img.icons8.com/ios-filled/24/settings.png"
-          alt="settings"
-          style={{ cursor: "pointer" }}
-        />
 
         <div className="dropdown">
           <button
