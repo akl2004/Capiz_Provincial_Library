@@ -90,7 +90,7 @@ class BookSeeder extends Seeder
                 'material_type' => 'Book',
                 'cataloging_note' => 'Cataloged by FCU Library, August 28, 2025',
                 'internal_note' => 'Donated by alumni association.',
-                'source' => 'donated',
+                'source' => 'Donation',
                 'source_person' => 'Alumni Association',
                 'location_of_book' => 'Main Library Shelf A1',
             ]);

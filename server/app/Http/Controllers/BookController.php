@@ -44,7 +44,7 @@ class BookController extends Controller
         'section' => 'required|string',
         'dewey_decimal' => 'required|string',
         'author_number' => 'nullable|string',
-        'source' => 'required|in:library,donated',
+        'source' => 'required|in:Purchased,Donation,Exchange,Legal Deposit,Other',
         'source_person' => 'nullable|string',
         'copies' => 'required|integer|min:1',
         'cover_image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',

@@ -90,7 +90,7 @@ class CirculationSeeder extends Seeder
                     'accession_number' => $accessionNumber,
                     'status'           => 'available',
                     'material_type'    => 'Book',
-                    'source'           => 'donated',
+                    'source'           => 'Donation',
                     'location_of_book' => 'Main Library Shelf A1',
                 ]
             );

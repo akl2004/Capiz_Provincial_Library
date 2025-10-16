@@ -160,7 +160,7 @@ const BookForm: React.FC = () => {
     formData.append("internal_note", internalNote);
     formData.append("copies", copies.toString());
     formData.append("section", section);
-    formData.append("source", source.toLowerCase().trim());
+    formData.append("source", source.trim());
     formData.append("material_type", materialType);
     if (coverImage) formData.append("cover_image", coverImage);
 

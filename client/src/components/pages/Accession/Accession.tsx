@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
-import AxiosInstance from "../../AxiosInstance";
-import LoadingSpinner from "../../components/LoadingSpinner";
+import AxiosInstance from "../../../AxiosInstance";
+import LoadingSpinner from "../../LoadingSpinner";
 import coverPlaceholder from "/src/assets/cover_placeholder.jpg";
 import * as XLSX from "xlsx";
 
@@ -187,6 +187,7 @@ const Accession = () => {
 
   // Close menus on outside click
   useEffect(() => {
+    document.title = "Accession";
     const handleClickOutside = (event: MouseEvent) => {
       // Close sort menu if clicked outside
       if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
@@ -268,7 +269,6 @@ const Accession = () => {
     // Export to Excel file
     XLSX.writeFile(workbook, "accession_record.xlsx");
   };
-
 
   return (
     <div className="copies-info mt-4">

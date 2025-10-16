@@ -13,9 +13,10 @@ interface HeaderProps {
     name?: string | null;
   };
   onLogout: () => void;
+  isUserLoading?: boolean;
 }
 
-const Header = ({ user, onLogout }: HeaderProps) => {
+const Header = ({ user, onLogout, isUserLoading = false }: HeaderProps) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -149,7 +150,20 @@ const Header = ({ user, onLogout }: HeaderProps) => {
               className="rounded-circle me-2"
               style={{ width: "32px", height: "32px" }}
             />
-            <span>{user.name || "Guest"}</span>
+            {isUserLoading ? (
+              <span
+                style={{
+                  width: "150px",
+                  height: "24px",
+                  background: "#e0e0e0",
+                  borderRadius: "4px",
+                  animation: "pulse 1.5s infinite",
+                }}
+              >
+              </span>
+            ) : (
+              <span>{user.name || "Guest"}</span>
+            )}
           </button>
 
           {dropdownOpen && (

@@ -32,4 +32,9 @@ class Attendance extends Model
         'time_in' => 'datetime',
         'time_out' => 'datetime',
     ];
+
+    public function patron()
+    {
+        return $this->belongsTo(Patron::class, 'patron_id');
+    }
 }

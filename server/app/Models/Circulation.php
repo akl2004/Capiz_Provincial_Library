@@ -16,11 +16,11 @@ class Circulation extends Model
         'issue_date',
         'due_date',
         'renewal_date',
+        'renewal_count',
         'overdue_by',
         'fine',
         'date_returned',
         'status',
-        'renewal_count',
     ];
 
     protected $dates = [

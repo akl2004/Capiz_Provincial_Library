@@ -62,6 +62,21 @@ class AttendanceController extends Controller
         return Attendance::orderBy('created_at', 'desc')->get();
     }
 
+    public function patronsThisWeek()
+    {
+        $startOfWeek = now()->startOfWeek(Carbon::MONDAY); // Monday as the start of the week
+        $endOfWeek = now()->endOfWeek(Carbon::SUNDAY);     // Sunday as the end of the week
+
+        $attendances = Attendance::with('patron')
+            ->whereNotNull('patron_id') // exclude guests
+            ->whereBetween('time_in', [$startOfWeek, $endOfWeek])
+            ->get();
+
+        return response()->json($attendances);
+    }
+
+
+
     // Get all activity logs for a specific patron
     public function patronLogs($id)
     {
@@ -75,5 +90,26 @@ class AttendanceController extends Controller
 
         return response()->json($logs);
     }
+
+    // Get today's tally with percentage change from yesterday
+    public function todayTallyWithPercentage()
+    {
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+
+        $todayCount = Attendance::whereDate('time_in', $today)->count();
+        $yesterdayCount = Attendance::whereDate('time_in', $yesterday)->count();
+
+        $percent = $yesterdayCount
+            ? round((($todayCount - $yesterdayCount) / $yesterdayCount) * 100)
+            : 100;
+
+        return response()->json([
+            'attendanceToday' => $todayCount, // matches frontend
+            'percent' => $percent,
+        ]);
+    }
+
+
 
 }

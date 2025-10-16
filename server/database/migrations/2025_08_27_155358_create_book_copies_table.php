@@ -26,7 +26,7 @@ return new class extends Migration
             $table->enum('material_type', ['Book', 'Journal', 'Thesis', 'E-Resource']);
             $table->text('cataloging_note')->nullable();
             $table->text('internal_note')->nullable();
-            $table->enum('source', ['library', 'donated'])->default('library');
+            $table->enum('source', ['Purchased', 'Donation', 'Exchange', 'Legal Deposit', 'Other']);
             $table->string('source_person')->nullable();
             $table->string('location_of_book')->nullable();
 

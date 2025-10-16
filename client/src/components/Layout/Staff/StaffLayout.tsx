@@ -27,6 +27,8 @@ const StaffLayout = ({ content }: StaffLayoutProps) => {
     name: "Guest",
   });
 
+  const [isUserLoading, setIsUserLoading] = useState(true);
+
   useEffect(() => {
     const token = localStorage.getItem("authToken");
     if (!token) return;
@@ -45,7 +47,8 @@ const StaffLayout = ({ content }: StaffLayoutProps) => {
           name: res.data.name || `${res.data.first_name} ${res.data.last_name}`,
         });
       })
-      .catch((err) => console.error("Failed to fetch user info", err));
+      .catch((err) => console.error("Failed to fetch user info", err))
+      .finally(() => setIsUserLoading(false)); // ✅ Stop loading
   }, []);
 
   return (
@@ -56,6 +59,7 @@ const StaffLayout = ({ content }: StaffLayoutProps) => {
 
       <div className="admin-main">
         <Header
+          isUserLoading={isUserLoading}
           user={{
             first_name: user.first_name,
             middle_name: user.middle_name,

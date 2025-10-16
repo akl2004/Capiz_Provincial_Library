@@ -19,6 +19,7 @@ interface Circulation {
   book_copy: {
     id: number;
     barcode: string;
+    copy_number: string;
     book: {
       title: string;
       call_number: string;
@@ -27,6 +28,8 @@ interface Circulation {
   issue_date: string;
   due_date: string;
   date_returned: string | null;
+  renewal_date?: string;
+  renewal_count?: number; // ✅ Add this
   status: string;
   renewed?: boolean;
   fine: number;
@@ -73,15 +76,6 @@ const CirculationPage = () => {
   // Status filter (already exists)
   const filterRef = useRef<HTMLDivElement | null>(null);
   const sortRef = useRef<HTMLDivElement | null>(null);
-
-  // useEffect(() => {
-  //   document.title = "Circulation";
-  //   AxiosInstance.get("/circulations")
-  //     .then((res) => setRecords(res.data))
-  //     .catch((err) => console.error(err))
-  //     .finally(() => setLoading(false));
-  // }, []);
-  
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -154,8 +148,6 @@ const CirculationPage = () => {
     fetchRecords();
   }, []);
 
-
-
   const filteredRecords = records.filter((rec) => {
     const matchesSearch =
       [
@@ -222,31 +214,34 @@ const CirculationPage = () => {
 
   // Apply sorting to filtered records
   let sortedRecords = [...filteredRecords]; // copy first
-  if (sortField) {
-    sortedRecords.sort((a, b) => {
-      let aVal: string | Date = "";
-      let bVal: string | Date = "";
 
-      switch (sortField) {
-        case "patron":
-          aVal = [a.patron.first_name, a.patron.last_name].join(" ");
-          bVal = [b.patron.first_name, b.patron.last_name].join(" ");
-          break;
-        case "book":
-          aVal = a.book_copy.book.title;
-          bVal = b.book_copy.book.title;
-          break;
-        case "issue_date":
-          aVal = new Date(a.issue_date);
-          bVal = new Date(b.issue_date);
-          break;
-      }
+  // If no sortField is selected, default to issue_date descending
+  const fieldToSort = sortField || "issue_date";
+  const orderToSort = sortField ? sortOrder : "desc";
 
-      if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
-      if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
-      return 0;
-    });
-  }
+  sortedRecords.sort((a, b) => {
+    let aVal: string | Date = "";
+    let bVal: string | Date = "";
+
+    switch (fieldToSort) {
+      case "patron":
+        aVal = [a.patron.first_name, a.patron.last_name].join(" ");
+        bVal = [b.patron.first_name, b.patron.last_name].join(" ");
+        break;
+      case "book":
+        aVal = a.book_copy.book.title;
+        bVal = b.book_copy.book.title;
+        break;
+      case "issue_date":
+        aVal = new Date(a.issue_date);
+        bVal = new Date(b.issue_date);
+        break;
+    }
+
+    if (aVal < bVal) return orderToSort === "asc" ? -1 : 1;
+    if (aVal > bVal) return orderToSort === "asc" ? 1 : -1;
+    return 0;
+  });
 
   // Use `sortedRecords` for pagination
   const indexOfLastRecord = currentPage * recordsPerPage;
@@ -594,7 +589,7 @@ const CirculationPage = () => {
                                           "-"}{" "}
                                         <br />
                                         <strong>Copy No.:</strong>{" "}
-                                        {rec.book_copy?.id}
+                                        {rec.book_copy?.copy_number}
                                       </td>
                                       <td style={{ padding: "0.5rem" }}>
                                         <strong>Issue Date:</strong>{" "}
@@ -602,7 +597,7 @@ const CirculationPage = () => {
                                         <strong>Due Date:</strong>{" "}
                                         {rec.due_date} <br />
                                         <strong>Renewals:</strong>{" "}
-                                        {rec.renewed ? 1 : 0} <br />
+                                        {rec.renewal_count ?? 0} <br />
                                         <strong>Return Date:</strong>{" "}
                                         {rec.date_returned || "-"}
                                       </td>

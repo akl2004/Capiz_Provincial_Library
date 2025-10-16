@@ -131,8 +131,12 @@ const Cataloging = () => {
         };
       });
 
-      setBooks(formattedBooks);
-      setFilteredBooks(formattedBooks);
+      // Sort newest first by id
+      const sortedBooks = formattedBooks.sort((a: Book, b: Book) => b.id - a.id);
+
+      setBooks(sortedBooks);
+      setFilteredBooks(sortedBooks);
+
     } catch (error) {
       console.error("Error fetching books:", error);
     } finally {

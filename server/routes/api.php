@@ -11,6 +11,7 @@ use App\Http\Controllers\CirculationController;
 use App\Http\Controllers\DropdownController;
 use App\Http\Controllers\LibrarySettingController;
 use App\Http\Controllers\PatronController;
+use App\Http\Controllers\ReportsController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,11 +38,10 @@ Route::get('/dropdown-options', [DropdownController::class, 'index']);
 
 // Book routes
 Route::get('/books', [BookController::class, 'index']);    //fetch all books
-// Route::post('/books', [BookController::class, 'store']);
 Route::get('/books/latest', [BookController::class, 'latest']);
 Route::get('/books/search', [BookController::class, 'search']); //fetches searched books
 Route::get('/books/{id}', [BookController::class, 'show']);  // fetch single book
-// Route::post('/books/{id}/add-copy', [BookController::class, 'addCopy']);
+Route::get('/books/copy/{barcode}', [BookController::class, 'getByBarcode']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/books', [BookController::class, 'store']);   // Add new book
@@ -66,7 +66,6 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     
     Route::get('/patrons/generate-id', [PatronController::class, 'generatePatronId']);
-    Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
     Route::get('/patrons/{id}/stats', [PatronController::class, 'stats']);
     Route::patch('/patrons/{id}/deactivate', [PatronController::class, 'deactivate']);
     
@@ -77,6 +76,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/patrons/{id}', [PatronController::class, 'destroy']);
 });
 
+Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
+
 
 
 // Circulation routes
@@ -86,16 +87,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/circulations/renew', [CirculationController::class, 'renew']);
 });
 
+Route::get('/circulations/today-tally', [CirculationController::class, 'todayTallyWithPercentage']);
 Route::get('/circulations', [CirculationController::class, 'index']);        // list all circulations
-// Route::post('/circulations/borrow', [CirculationController::class, 'borrow']);
 Route::get('/circulations/{id}', [CirculationController::class, 'show']);    // view single circulation record
 Route::put('/circulations/{id}/mark-lost', [CirculationController::class, 'markLost']); // mark book as lost
 Route::get('/patrons/{id}/transactions', [CirculationController::class, 'patronTransactions']); // fetch patrons transaction
 Route::get('/copies/{copyId}/history', [CirculationController::class, 'copyHistory']); //fetches all transaction of a book
-// Route::post('/circulations/return', [CirculationController::class, 'return']);
-// Route::post('/circulations/renew', [CirculationController::class, 'renew']); 
-
-Route::get('/books/copy/{barcode}', [BookController::class, 'getByBarcode']);
+// Route::get('/circulation/today-tally', [CirculationController::class, 'todayTally']); 
+Route::get('/circulation/top-books-week', [CirculationController::class, 'topBooksThisWeek']);
 
 Route::get('/circulations/borrowed-book/{barcode}', [CirculationController::class, 'getBorrowedBookByBarcode']);
 
@@ -106,6 +105,8 @@ Route::get('/attendances', [AttendanceController::class, 'index']);
 Route::post('/attendances', [AttendanceController::class, 'store']);   // time in
 Route::post('/attendances/{id}/timeout', [AttendanceController::class, 'timeOut']); // time out
 Route::get('/attendances/today', [AttendanceController::class, 'today']); // daily attendance
+Route::get('/attendances/patrons-this-week', [AttendanceController::class, 'patronsThisWeek']);  // for patron dashboard
+Route::get('/attendances/today-tally', [AttendanceController::class, 'todayTallyWithPercentage']);  
 
 Route::get('/patrons/{id}/activity-logs', [AttendanceController::class, 'patronLogs']);
 
@@ -132,3 +133,10 @@ Route::post('/settings/timezone', [LibrarySettingController::class, 'updateTimez
 Route::get('/activity-logs', [ActivityLogController::class, 'index']);
 Route::get('/staff/{id}/activity-logs', [ActivityLogController::class, 'getStaffLogs']); // ✅ for individual staff
 Route::post('/activity-logs', [ActivityLogController::class, 'store']);
+
+
+// Reports
+Route::get('/reports/collection', [ReportsController::class, 'collection']);
+Route::get('/reports/collection-masterlist', [ReportsController::class, 'collectionMasterlist']);
+Route::get('/reports/circulation', [ReportsController::class, 'circulation']);
+

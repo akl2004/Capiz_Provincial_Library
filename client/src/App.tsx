@@ -3,17 +3,17 @@ import { HashRouter, Routes, Route } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Admin Components
-import AdminDashboard from "./components/Admin/AdminDashboard";
+import AdminDashboard from "./components/pages/Dashboard/AdminDashboard";
 import AdminLayout from "./components/Layout/Admin/AdminLayout";
 import StaffLayout from "./components/Layout/Staff/StaffLayout";
 
 // Pages
 import Patron from "./components/pages/Patron/Patron";
 import Cataloging from "./components/pages/Catalog/Cataloging";
-import Accession from "./components/pages/Accession";
+import Accession from "./components/pages/Accession/Accession";
 import Circulation from "./components/pages/Circulation/CirculationPage";
 import Attendance from "./components/pages/Attendance/Attendance";
-import Reports from "./components/pages/Reports";
+import Reports from "./components/pages/Reports/Reports";
 import BookDetails from "./components/pages/Catalog/BookDetails";
 import CopyInformation from "./components/pages/Catalog/CopyInformation";
 import BookForm from "./components/pages/Catalog/BookForm";
@@ -102,10 +102,7 @@ export default function App() {
           <Route path="cataloging" element={<Cataloging />} />
           <Route path="cataloging/addbook" element={<BookForm />} />
           <Route path="cataloging/:id" element={<BookDetails />} />
-          <Route
-            path="cataloging/:id/:copyId"
-            element={<CopyInformation />}
-          />
+          <Route path="cataloging/:id/:copyId" element={<CopyInformation />} />
           <Route path="accession" element={<Accession />} />
           <Route path="circulation" element={<Circulation />} />
           <Route path="circulation/issue" element={<IssueForm />} />
@@ -147,10 +144,7 @@ export default function App() {
           <Route path="cataloging" element={<Cataloging />} />
           <Route path="cataloging/addbook" element={<BookForm />} />
           <Route path="cataloging/:id" element={<BookDetails />} />
-          <Route
-            path="cataloging/:id/:copyId"
-            element={<CopyInformation />}
-          />
+          <Route path="cataloging/:id/:copyId" element={<CopyInformation />} />
           <Route path="accession" element={<Accession />} />
           <Route path="circulation" element={<Circulation />} />
           <Route path="circulation/issue" element={<IssueForm />} />

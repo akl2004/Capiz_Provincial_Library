@@ -363,5 +363,85 @@ class CirculationController extends Controller
         return response()->json($history);
     }
 
+    // Get today's tally: borrowed, returned, overdue
+    // public function todayTally()
+    // {
+    //     $today = Carbon::today();
+
+    //     $borrowedToday = Circulation::where('status', 'borrowed')
+    //         ->whereDate('issue_date', $today)
+    //         ->count();
+
+    //     $returnedToday = Circulation::where('status', 'returned')
+    //         ->whereDate('date_returned', $today)
+    //         ->count();
+
+    //     $overdueToday = Circulation::where('status', 'borrowed')
+    //         ->whereDate('due_date', '<', $today)
+    //         ->count();
+
+    //     return response()->json([
+    //         'borrowedToday' => $borrowedToday,
+    //         'returnedToday' => $returnedToday,
+    //         'overdueToday' => $overdueToday,
+    //     ]);
+    // }
+
+    // Get top 5 most borrowed books this week
+    public function topBooksThisWeek()
+    {
+        $startOfWeek = Carbon::now()->startOfWeek();
+
+        $topBooks = Circulation::whereDate('issue_date', '>=', $startOfWeek)
+            ->join('book_copies', 'circulations.book_copy_id', '=', 'book_copies.id')
+            ->join('books', 'book_copies.book_id', '=', 'books.id')
+            ->select('books.title', DB::raw('COUNT(*) as borrowed_count'))
+            ->groupBy('books.title')
+            ->orderByDesc('borrowed_count')
+            ->limit(5)
+            ->get();
+
+        return response()->json($topBooks);
+    }
+
+    // Get today's tally with percentage change from yesterday
+    public function todayTallyWithPercentage()
+    {
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+
+        $calcPercent = fn($todayCount, $yesterdayCount) => $yesterdayCount
+            ? round((($todayCount - $yesterdayCount) / $yesterdayCount) * 100)
+            : 100;
+
+        $borrowedToday = Circulation::whereDate('issue_date', $today)->count();
+        $borrowedYesterday = Circulation::whereDate('issue_date', $yesterday)->count();
+
+        $returnedToday = Circulation::whereDate('date_returned', $today)->count();
+        $returnedYesterday = Circulation::whereDate('date_returned', $yesterday)->count();
+
+        $overdueToday = Circulation::where('status', 'borrowed')
+            ->whereDate('due_date', '<', $today)
+            ->count();
+        $overdueYesterday = Circulation::where('status', 'borrowed')
+            ->whereDate('due_date', '<', $yesterday)
+            ->count();
+
+        return response()->json([
+            'borrowed' => [
+                'count' => $borrowedToday,
+                'percent' => $calcPercent($borrowedToday, $borrowedYesterday),
+            ],
+            'returned' => [
+                'count' => $returnedToday,
+                'percent' => $calcPercent($returnedToday, $returnedYesterday),
+            ],
+            'overdue' => [
+                'count' => $overdueToday,
+                'percent' => $calcPercent($overdueToday, $overdueYesterday),
+            ],
+        ]);
+    }
+
 
 }
