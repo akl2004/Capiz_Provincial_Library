@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AxiosInstance from "../../../AxiosInstance";
 import LoadingSpinner from "../../LoadingSpinner";
+import Alert from "../../Alert";
 
 interface Patron {
   id: number;
@@ -35,6 +36,19 @@ const PatronProfile: React.FC = () => {
   const [sortOption, setSortOption] = useState<"date_asc" | "date_desc" | "">(
     ""
   );
+
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false);
+  const [deactivating, setDeactivating] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [blocking, setBlocking] = useState(false);
+
+  const [showActivateModal, setShowActivateModal] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [showUnblockModal, setShowUnblockModal] = useState(false);
+
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
 
   const filterRef = useRef<HTMLDivElement | null>(null);
   const navigate = useNavigate();
@@ -115,9 +129,106 @@ const PatronProfile: React.FC = () => {
     return 0;
   });
 
+  // Confirming deactivation
+  const handleDeactivate = async () => {
+    if (!patron) return;
+    setDeactivating(true);
+    try {
+      await AxiosInstance.patch(`/patrons/${patron.id}/deactivate`);
+      setShowDeactivateModal(false);
+
+      // Refresh staff data
+      const updated = await AxiosInstance.get(`/patrons/${patron.id}`);
+      setPatron(updated.data);
+
+      // Success alert
+      setAlertMessage("Patron has been deactivated successfully!");
+      setAlertType("success");
+    } catch (error) {
+      console.error("Error deactivating patron:", error);
+      setAlertMessage("Failed to deactivate patron.");
+      setAlertType("error");
+    } finally {
+      setDeactivating(false);
+    }
+  };
+
+  // For confirming blocking
+  const handleBlock = async () => {
+    if (!patron) return;
+
+    try {
+      setBlocking(true);
+      await AxiosInstance.patch(`/patrons/${patron.id}/block`);
+      setShowBlockModal(false);
+
+      // Refresh patron data
+      const updated = await AxiosInstance.get(`/patrons/${patron.id}`);
+      setPatron(updated.data);
+
+      setAlertMessage(
+        `Patron has been blocked successfully.`
+      );
+      setAlertType("success");
+    } catch (error: any) {
+      console.error("Error blocking patron:", error);
+      setAlertMessage(
+        error.response?.data?.message ||
+          "Failed to block patron. Please try again."
+      );
+      setAlertType("error");
+    } finally {
+      setBlocking(false);
+    }
+  };
+
+  // Reactivate patron
+  const handleActivate = async (isUnblock = false) => {
+    if (!patron) return;
+    setActivating(true);
+
+    try {
+      await AxiosInstance.patch(`/patrons/${patron.id}/activate`);
+
+      // Close the correct modal
+      if (isUnblock) {
+        setShowUnblockModal(false);
+      } else {
+        setShowActivateModal(false);
+      }
+
+      // Refresh patron data
+      const updated = await AxiosInstance.get(`/patrons/${patron.id}`);
+      setPatron(updated.data);
+
+      // Success alert
+      setAlertMessage(
+        isUnblock
+          ? "Patron has been unblocked successfully!"
+          : "Patron has been reactivated successfully!"
+      );
+      setAlertType("success");
+    } catch (error) {
+      console.error("Error activating patron:", error);
+      setAlertMessage("Failed to update patron status.");
+      setAlertType("error");
+    } finally {
+      setActivating(false);
+    }
+  };
+
+
   return (
     <>
       <div className="patron-profile mt-4 mb-5">
+        {/* Alert component */}
+        {alertMessage && (
+          <Alert
+            message={alertMessage}
+            type={alertType}
+            onClose={() => setAlertMessage("")}
+          />
+        )}
         <div className="mb-4">
           <h1 className="text-xl font-semibold">
             <span
@@ -152,51 +263,57 @@ const PatronProfile: React.FC = () => {
           </div>
           <div className="patron-actions">
             <span
-              className="action-link text-primary"
+              className="action-link"
               style={{ cursor: "pointer" }}
-              onClick={() => navigate(`/admin/patrons/${patron?.id}/edit`)}
+              onClick={() => navigate(`/admin/patrons/${id}/edit`)}
             >
               Edit
             </span>
             {" | "}
             <span
-              className="action-link text-warning"
-              style={{ cursor: "pointer" }}
+              className={`action-link`}
+              // style={{ cursor: "pointer" }}
+              style={{
+                cursor:
+                  patron?.status === "Blocked" ? "not-allowed" : "pointer",
+                color: patron?.status === "Blocked" ? "#aaa" : "#8A1616",
+              }}
               onClick={() => {
-                if (
-                  window.confirm(
-                    "Are you sure you want to deactivate this user?"
-                  )
-                ) {
-                  // Call your deactivate API here
-                  console.log("User deactivated");
+                if (patron?.status === "Active") {
+                  setShowDeactivateModal(true);
+                } else if (patron?.status === "Deactivated") {
+                  setShowActivateModal(true); // now Reactivate works
                 }
               }}
             >
-              Deactivate
+              {patron?.status === "Deactivated" ? "Reactivate" : "Deactivate"}
             </span>
             {" | "}
             <span
-              className="action-link text-danger"
-              style={{ cursor: "pointer" }}
+              className={`action-link ${
+                patron?.status === "Deactivated" ? "disabled" : ""
+              }`}
+              style={{
+                cursor:
+                  patron?.status === "Deactivated" ? "not-allowed" : "pointer",
+                color: patron?.status === "Deactivated" ? "#aaa" : "#8A1616",
+              }}
               onClick={() => {
-                if (
-                  window.confirm("Are you sure you want to block this user?")
-                ) {
-                  // Call your block API here
-                  console.log("User blocked");
+                if (patron?.status === "Active") {
+                  setShowBlockModal(true);
+                } else if (patron?.status === "Blocked") {
+                  setShowUnblockModal(true);
                 }
               }}
             >
-              Block
+              {patron?.status === "Blocked" ? "Unblock" : "Block"}
             </span>
+
             {" | "}
             <span
-              className="action-link text-secondary"
+              className="action-link"
               style={{ cursor: "pointer" }}
-              onClick={() =>
-                navigate(`/admin/patrons/${patron?.id}/full-record`)
-              }
+              onClick={() => navigate(`/admin/patrons/${patron?.id}`)}
             >
               View Full Record
             </span>
@@ -246,7 +363,6 @@ const PatronProfile: React.FC = () => {
           )}
         </div>
       </div>
-
       {/* Activity Log */}
       <div className="patron-profile mt-4">
         <div className="d-flex justify-content-between align-items-center mb-3">
@@ -341,6 +457,119 @@ const PatronProfile: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* DEACTIVATION MODAL */}
+      {showDeactivateModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h2>Confirm Deactivation</h2>
+            <p>Are you sure you want to deactivate this patron?</p>
+            <div className="modal-actions">
+              <button
+                className="btn btn-danger"
+                onClick={handleDeactivate}
+                disabled={deactivating}
+              >
+                {deactivating && <span className="spinner-tiny"></span>}
+                {deactivating ? "Deactivating..." : "Deactivate"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowDeactivateModal(false)}
+                disabled={deactivating}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Block Confirmation Modal */}
+      {showBlockModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h2>Confirm Block</h2>
+            <p>
+              Are you sure you want to block <strong>{fullName}</strong>?
+            </p>
+            <div className="modal-actions">
+              <button
+                className="btn btn-danger"
+                onClick={handleBlock}
+                disabled={blocking}
+              >
+                {blocking && <span className="spinner-tiny"></span>}
+                {blocking ? "Blocking..." : "Block"}
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setShowBlockModal(false)}
+                disabled={blocking}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reactivate Confirmation Modal */}
+      {showActivateModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h2>Reactivate Patron</h2>
+            <p>Are you sure you want to reactivate this patron?</p>
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="submit-btn"
+                onClick={() => handleActivate()}
+                disabled={activating}
+              >
+                {activating && <span className="spinner-tiny"></span>}
+                {activating ? "Reactivating..." : "Yes, Reactivate"}
+              </button>
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setShowActivateModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unblock Confirmation Modal */}
+      {showUnblockModal && (
+        <div className="modal-overlay">
+          <div className="modal-box">
+            <h2>Unblock Patron</h2>
+            <p>
+              Are you sure you want to unblock <strong>{fullName}</strong>?
+            </p>
+            <div className="form-actions">
+              <button
+                type="submit"
+                className="submit-btn"
+                onClick={() => handleActivate(true)}
+                disabled={activating}
+              >
+                {activating && <span className="spinner-tiny"></span>}
+                {activating ? "Unblocking..." : "Yes, Unblock"}
+              </button>
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setShowUnblockModal(false)}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

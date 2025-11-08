@@ -447,19 +447,21 @@ const Accession = () => {
                   ></i>
                 </div>
                 {activeFilterSection === "source" &&
-                  ["Donation", "Library"].map((src) => (
-                    <div
-                      key={src}
-                      className={`filter-item ${
-                        sourceFilter === src ? "active" : ""
-                      }`}
-                      onClick={() =>
-                        setSourceFilter(sourceFilter === src ? null : src)
-                      }
-                    >
-                      {src}
-                    </div>
-                  ))}
+                  ["Purchased", "Donation", "Exchange", "Legal Deposit"].map(
+                    (src) => (
+                      <div
+                        key={src}
+                        className={`filter-item ${
+                          sourceFilter === src ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          setSourceFilter(sourceFilter === src ? null : src)
+                        }
+                      >
+                        {src}
+                      </div>
+                    )
+                  )}
 
                 {/* Date Filter */}
                 <div

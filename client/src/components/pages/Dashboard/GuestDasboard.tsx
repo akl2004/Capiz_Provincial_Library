@@ -96,13 +96,19 @@ const GuestDashboard = () => {
           </span>
           <input
             className="form-control ps-5 pe-5"
-            style={{padding: "12px"}}
+            style={{ padding: "12px" }}
             placeholder="Search here..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && searchTerm.trim() !== "") {
-                navigate(`/guest/guestdashboard/search?query=${encodeURIComponent(searchTerm)}`);
+                setShowDropdown(false); // ✅ Hide dropdown
+                setSearchResults([]); // ✅ Clear old suggestions (for GuestDashboard)
+                navigate(
+                  `/guest/guestdashboard/search?query=${encodeURIComponent(
+                    searchTerm
+                  )}`
+                );
               }
             }}
             onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
@@ -128,7 +134,11 @@ const GuestDashboard = () => {
                   onClick={() => {
                     setSearchTerm(book.title);
                     setShowDropdown(false);
-                    navigate(`/guest/guestdashboard/search?query=${encodeURIComponent(book.title)}`);
+                    navigate(
+                      `/guest/guestdashboard/search?query=${encodeURIComponent(
+                        book.title
+                      )}`
+                    );
                   }}
                 >
                   {book.title}

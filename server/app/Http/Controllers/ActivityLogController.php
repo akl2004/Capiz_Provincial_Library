@@ -18,8 +18,8 @@ class ActivityLogController extends Controller
         );
     }
 
-    // ✅ Get logs for a specific staff
-    public function getStaffLogs($id)
+    // ✅ Get logs for a specific user
+    public function getUserLogs($id)
     {
         $logs = ActivityLog::where('user_id', $id)
             ->orderByDesc('created_at')

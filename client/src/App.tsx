@@ -34,6 +34,8 @@ import StaffProfile from "./components/pages/Accounts/StaffProfile";
 import StaffDashboard from "./components/pages/Dashboard/StaffDashboard";
 import GuestDasboard from "./components/pages/Dashboard/GuestDasboard";
 import SearchResults from "./components/pages/Catalog/SearchResults";
+import AdminProfile from "./components/pages/Accounts/AdminProfile";
+import EditPatron from "./components/pages/Patron/EditPatron";
 
 export default function App() {
   return (
@@ -95,6 +97,7 @@ export default function App() {
           <Route path="admindashboard" element={<AdminDashboard />} />
           <Route path="patrons" element={<Patron />} />
           <Route path="patrons/:id" element={<PatronInfo />} />
+          <Route path="patrons/:id/edit" element={<EditPatron />} />
           <Route
             path="patrons/:id/transactions"
             element={<PatronTransactions />}
@@ -123,6 +126,7 @@ export default function App() {
           <Route path="accounts" element={<Accounts />} />
           <Route path="accounts/patron/:id" element={<PatronProfile />} />
           <Route path="accounts/staff/:id" element={<StaffProfile />} />
+          <Route path="accounts/admin/:id" element={<AdminProfile />} />
         </Route>
 
         {/* Staff Routes */}

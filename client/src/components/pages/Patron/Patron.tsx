@@ -408,10 +408,15 @@ const Patron = () => {
 
   // Filter / sort
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<"name" | "date" | null>(
+  const [activeFilterSection, setActiveFilterSection] = useState<string | null>(
     null
   );
-  const [sortOption, setSortOption] = useState("");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+  const [statusFilter, setStatusFilter] = useState<string | null>(null);
+
+  const sortRef = useRef<HTMLDivElement | null>(null);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -448,7 +453,6 @@ const Patron = () => {
         !filterRef.current.contains(event.target as Node)
       ) {
         setFilterMenuOpen(false);
-        setActiveFilter(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -462,19 +466,27 @@ const Patron = () => {
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // Filter + Sort
+  // Filter patrons by search + status
   const filteredPatrons = patrons.filter((patron) => {
     const fullName = `${patron.first_name} ${patron.middle_name ?? ""} ${
       patron.last_name
-    } ${patron.suffix ?? ""}`.trim();
-    return (
-      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      patron.patron_id?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    } ${patron.suffix ?? ""}`
+      .trim()
+      .toLowerCase();
+    const matchesSearch =
+      fullName.includes(searchTerm.toLowerCase()) ||
+      patron.patron_id?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter ? patron.status === statusFilter : true;
+
+    return matchesSearch && matchesStatus;
   });
 
+  // Sort patrons by selected field + order
   const sortedPatrons = [...filteredPatrons].sort((a, b) => {
-    if (sortOption === "name_asc") {
+    if (!sortField || !sortOrder) return 0;
+
+    if (sortField === "name") {
       const nameA = `${a.first_name} ${a.middle_name ?? ""} ${a.last_name} ${
         a.suffix ?? ""
       }`
@@ -485,31 +497,36 @@ const Patron = () => {
       }`
         .trim()
         .toLowerCase();
-      return nameA.localeCompare(nameB);
+      return sortOrder === "asc"
+        ? nameA.localeCompare(nameB)
+        : nameB.localeCompare(nameA);
     }
-    if (sortOption === "name_desc") {
-      const nameA = `${a.first_name} ${a.middle_name ?? ""} ${a.last_name} ${
-        a.suffix ?? ""
-      }`
-        .trim()
-        .toLowerCase();
-      const nameB = `${b.first_name} ${b.middle_name ?? ""} ${b.last_name} ${
-        b.suffix ?? ""
-      }`
-        .trim()
-        .toLowerCase();
-      return nameB.localeCompare(nameA);
+
+    if (sortField === "registration_date") {
+      const dateA = new Date(a.created_at).getTime();
+      const dateB = new Date(b.created_at).getTime();
+      return sortOrder === "asc" ? dateA - dateB : dateB - dateA;
     }
-    if (sortOption === "date_asc")
-      return (
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-    if (sortOption === "date_desc")
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+
     return 0;
   });
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        sortRef.current &&
+        !sortRef.current.contains(e.target as Node) &&
+        filterRef.current &&
+        !filterRef.current.contains(e.target as Node)
+      ) {
+        setSortMenuOpen(false);
+        setFilterMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
 
   // Pagination slice
   const totalPages = Math.ceil(sortedPatrons.length / patronsPerPage);
@@ -537,91 +554,153 @@ const Patron = () => {
         </div>
 
         <div className="d-flex gap-2 align-items-center">
-          {/* Search */}
-          <div className="position-relative" style={{ maxWidth: "300px" }}>
-            <span
-              className="position-absolute top-50 translate-middle-y ps-2"
-              style={{ left: "10px", color: "#6c757d" }}
-            >
-              <i className="bi bi-search"></i>
-            </span>
-            <input
-              className="form-control ps-5 pe-5"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* Filter */}
-          <div className="position-relative" ref={filterRef}>
-            <button
-              className="btn btn-outline-secondary d-flex align-items-center"
-              onClick={(e) => {
-                e.stopPropagation();
-                setFilterMenuOpen(!filterMenuOpen);
-                setActiveFilter(null);
-              }}
-            >
-              <i className="bi bi-sliders me-2"></i> Filter
-            </button>
-
-            {filterMenuOpen && (
-              <div
-                className="dropdown-menu show"
-                style={{ position: "absolute", zIndex: 9999 }}
-                onClick={(e) => e.stopPropagation()}
+          {/* Controls */}
+          <div className="d-flex gap-2 align-items-center">
+            {/* Search */}
+            <div className="position-relative" style={{ maxWidth: "300px" }}>
+              <span
+                className="position-absolute top-50 translate-middle-y ps-2"
+                style={{ left: "10px", color: "#6c757d" }}
               >
-                <button
-                  className="dropdown-item"
-                  onClick={() =>
-                    setActiveFilter(activeFilter === "name" ? null : "name")
-                  }
+                <i className="bi bi-search"></i>
+              </span>
+              <input
+                className="form-control ps-5 pe-5"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Sort Controls */}
+            <div className="position-relative" ref={sortRef}>
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortMenuOpen(!sortMenuOpen);
+                }}
+              >
+                <i className="bi bi-sort-alpha-down me-2"></i> Sort
+              </button>
+              {sortMenuOpen && (
+                <div
+                  className="sort-dropdown"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Name
-                </button>
-                {activeFilter === "name" && (
-                  <div className="ms-3">
+                  <div className="sort-fields">
+                    {[
+                      { field: "name", label: "Name" },
+                      {
+                        field: "registration_date",
+                        label: "Registration Date",
+                      },
+                    ].map(({ field, label }) => (
+                      <div
+                        key={field}
+                        className={`sort-field ${
+                          sortField === field ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          setSortField(sortField === field ? null : field)
+                        }
+                      >
+                        {sortField === field && (
+                          <span className="selected-dot"></span>
+                        )}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="sort-order">
                     <button
-                      className="dropdown-item"
-                      onClick={() => setSortOption("name_asc")}
+                      className={`sort-btn ${
+                        sortField && sortOrder === "asc" ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        if (!sortField) return;
+                        if (sortOrder === "asc") setSortField(null);
+                        else setSortOrder("asc");
+                      }}
                     >
-                      <i className="bi bi-sort-alpha-down"></i> Asc
+                      ASC
                     </button>
                     <button
-                      className="dropdown-item"
-                      onClick={() => setSortOption("name_desc")}
+                      className={`sort-btn ${
+                        sortField && sortOrder === "desc" ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        if (!sortField) return;
+                        if (sortOrder === "desc") setSortField(null);
+                        else setSortOrder("desc");
+                      }}
                     >
-                      <i className="bi bi-sort-alpha-up"></i> Desc
+                      DESC
                     </button>
                   </div>
-                )}
-                <button
-                  className="dropdown-item"
-                  onClick={() =>
-                    setActiveFilter(activeFilter === "date" ? null : "date")
-                  }
+                </div>
+              )}
+            </div>
+
+            {/* Filter dropdown */}
+            <div className="position-relative" ref={filterRef}>
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFilterMenuOpen(!filterMenuOpen);
+                }}
+              >
+                <i className="bi bi-sliders me-2"></i> Filter
+              </button>
+
+              {filterMenuOpen && (
+                <div
+                  className="filter-dropdown"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  Date
-                </button>
-                {activeFilter === "date" && (
-                  <div className="ms-3">
-                    <button
-                      className="dropdown-item"
-                      onClick={() => setSortOption("date_asc")}
-                    >
-                      <i className="bi bi-sort-numeric-down"></i> Asc
-                    </button>
-                    <button
-                      className="dropdown-item"
-                      onClick={() => setSortOption("date_desc")}
-                    >
-                      <i className="bi bi-sort-numeric-down"></i> Desc
-                    </button>
+                  {/* STATUS SECTION */}
+                  <div
+                    className={`filter-section-header ${
+                      activeFilterSection === "status" ? "active" : ""
+                    }`}
+                    onClick={() =>
+                      setActiveFilterSection(
+                        activeFilterSection === "status" ? null : "status"
+                      )
+                    }
+                  >
+                    Status{" "}
+                    <i
+                      className={`bi ${
+                        activeFilterSection === "status"
+                          ? "bi-chevron-down"
+                          : "bi-chevron-right"
+                      } ms-2`}
+                    ></i>
                   </div>
-                )}
-              </div>
-            )}
+
+                  {activeFilterSection === "status" &&
+                    ["Active", "Deactivated", "Expired", "Blocked"].map(
+                      (status) => (
+                        <div
+                          key={status}
+                          className={`filter-item ${
+                            statusFilter === status ? "active" : ""
+                          }`}
+                          onClick={() =>
+                            setStatusFilter(
+                              statusFilter === status ? null : status
+                            )
+                          }
+                        >
+                          {status}
+                        </div>
+                      )
+                    )}
+                </div>
+              )}
+            </div>
           </div>
 
           <button className="patron-btn" onClick={() => setShowModal(true)}>

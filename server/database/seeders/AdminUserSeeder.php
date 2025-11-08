@@ -19,7 +19,7 @@ class AdminUserSeeder extends Seeder
                 'email' => 'admin@library.com',
                 'password' => 'admin123', // hashed automatically
                 'role' => 'admin',
-                'status' => 'active',
+                'status' => 'Active',
             ]);
         }
 
@@ -33,7 +33,7 @@ class AdminUserSeeder extends Seeder
                 'email' => 'staff@library.com',
                 'password' => 'staff123',
                 'role' => 'staff',
-                'status' => 'active',
+                'status' => 'Active',
             ]);
         }
     }

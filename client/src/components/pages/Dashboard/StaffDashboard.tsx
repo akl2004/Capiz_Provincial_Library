@@ -65,10 +65,6 @@ const StaffDashboard = ({ user }: StaffDashboardProps) => {
     returned: { count: 0, percent: 0 },
     overdue: { count: 0, percent: 0 },
   });
-  // const [attendanceToday, setAttendanceToday] = useState(0);
-  // const [borrowedToday, setBorrowedToday] = useState(0);
-  // const [returnedToday, setReturnedToday] = useState(0);
-  // const [overdueToday, setOverdueToday] = useState(0);
   const [topPatrons, setTopPatrons] = useState<PatronVisit[]>([]);
   const [topBooks, setTopBooks] = useState<BorrowedBook[]>([]);
   const [searchTerm, setSearchTerm] = useState("");

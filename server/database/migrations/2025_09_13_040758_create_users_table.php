@@ -27,10 +27,12 @@ return new class extends Migration
 
             // Role and status
             $table->enum('role', ['staff', 'admin'])->default('staff');
-            $table->enum('status', ['active', 'onleave', 'inactive'])->default('active');
+            $table->string('status')->default('Active');
 
             // Last login timestamp
             $table->timestamp('last_login_at')->nullable();
+
+            $table->string('registered_by')->nullable();
 
             $table->timestamps();
         });

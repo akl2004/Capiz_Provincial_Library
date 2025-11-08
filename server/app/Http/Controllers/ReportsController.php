@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Attendance;
 use App\Models\Book;
+use App\Models\LibrarySetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -232,4 +234,194 @@ class ReportsController extends Controller
         ]);
     }
 
+    // 📊 Attendance Report Endpoints
+    public function attendanceSummary()
+    {
+        // Group by date
+        $rows = Attendance::selectRaw('DATE(time_in) as date')
+            ->selectRaw("SUM(CASE WHEN patron_id IS NULL THEN 1 ELSE 0 END) as guest")
+            ->selectRaw("SUM(CASE WHEN patron_id IS NOT NULL THEN 1 ELSE 0 END) as patron")
+            ->selectRaw("COUNT(*) as total")
+            ->groupBy('date')
+            ->orderBy('date', 'asc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'date' => $item->date,
+                    'guest' => (int)$item->guest,
+                    'patron' => (int)$item->patron,
+                    'total' => (int)$item->total,
+                ];
+            });
+
+        // Calculate overall summary
+        $summary = [
+            'guest' => $rows->sum('guest'),
+            'patron' => $rows->sum('patron'),
+            'total' => $rows->sum('total'),
+        ];
+
+        return response()->json([
+            'rows' => $rows,
+            'summary' => $summary,
+        ]);
+    }
+
+    public function attendanceLog()
+    {
+        $logs = Attendance::orderBy('time_in', 'desc')
+            ->get([
+                'id',
+                'patron_id',
+                'first_name',
+                'middle_name',
+                'last_name',
+                'suffix',
+                'province',
+                'city',
+                'barangay',
+                'number',
+                'affiliation',
+                'purpose_of_visit',
+                'time_in',
+                'time_out',
+            ])
+            ->map(function ($log) {
+                // Construct full address
+                $addressParts = array_filter([
+                    $log->barangay,
+                    $log->city,
+                    $log->province,
+                ]);
+                $fullAddress = implode(', ', $addressParts);
+
+                // Construct full name
+                $fullname = trim(
+                    $log->first_name . ' ' .
+                    ($log->middle_name ? $log->middle_name[0] . '. ' : '') .
+                    $log->last_name . ' ' .
+                    ($log->suffix ?? '')
+                );
+
+                // Extract date from time_in
+                $date = $log->time_in ? Carbon::parse($log->time_in)->format('Y-m-d') : null;
+
+                // Format times
+                $timeIn = $log->time_in ? Carbon::parse($log->time_in)->format('H:i') : null;
+                $timeOut = $log->time_out ? Carbon::parse($log->time_out)->format('H:i') : null;
+
+                return [
+                    'id' => $log->id,
+                    'type' => $log->patron_id ? 'patron' : 'guest',
+                    'fullname' => $fullname,
+                    'address' => $fullAddress ?: null,
+                    'contact_number' => $log->number ?? null,
+                    'purpose' => $log->purpose_of_visit ?? null,
+                    'affiliation' => $log->affiliation ?? null,
+                    'date' => $date,
+                    'time_in' => $timeIn,
+                    'time_out' => $timeOut,
+                ];
+            });
+
+        return response()->json([
+            'logs' => $logs,
+            'total_logs' => $logs->count(),
+        ]);
+    }
+
+
+    public function accounts()
+    {
+        // 🧮 Get expiration setting (default to 3 years)
+        $expirationYears = (int) LibrarySetting::getValue('patron_expiration_years', 3);
+
+        // 1️⃣ Bar Graph: Patron Accounts by Status
+        $accountStatus = DB::table('patrons')
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->get();
+
+        // 2️⃣ Donut Chart: Role Distribution (Patron, Staff, Admin)
+        $roles = DB::table('users')
+            ->select('role', DB::raw('COUNT(*) as total'))
+            ->groupBy('role')
+            ->get();
+
+        // Add patrons as a separate "role" count
+        $patronCount = DB::table('patrons')->count();
+        $roles->push((object)[
+            'role' => 'patron',
+            'total' => $patronCount,
+        ]);
+
+        // ✅ Calculate percentage for each role
+        $totalRoles = $roles->sum('total'); // sum of all roles
+        $roles = $roles->map(function ($role) use ($totalRoles) {
+            $role->percentage = $totalRoles > 0
+                ? round(($role->total / $totalRoles) * 100, 2)
+                : 0;
+            return $role;
+        });
+
+        // 3️⃣ Line Graph: Newly Added Accounts per Month (Users + Patrons)
+        $userAccounts = DB::table('users')
+            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('COUNT(*) as total'))
+            ->groupBy('month');
+
+        $patronAccounts = DB::table('patrons')
+            ->select(DB::raw('DATE_FORMAT(created_at, "%Y-%m") as month'), DB::raw('COUNT(*) as total'))
+            ->groupBy('month');
+
+        $newAccountsPerMonth = $userAccounts
+            ->unionAll($patronAccounts)
+            ->get()
+            ->groupBy('month')
+            ->map(function ($group, $month) {
+                return [
+                    'month' => $month,
+                    'total' => $group->sum('total'),
+                ];
+            })
+            ->values();
+
+        // 4️⃣ Accounts Registry Table (Users + Patrons)
+        $registry = collect(DB::select("
+            (SELECT 
+                id AS user_id, 
+                CONCAT(first_name, ' ', last_name) AS full_name, 
+                role, 
+                status, 
+                created_at, 
+                NULL AS expiration_date
+            FROM users)
+            UNION ALL
+            (SELECT 
+                patron_id AS user_id, 
+                CONCAT(first_name, ' ', last_name) AS full_name, 
+                'patron' AS role, 
+                status, 
+                created_at, 
+                DATE_ADD(created_at, INTERVAL $expirationYears YEAR) AS expiration_date
+            FROM patrons)
+            ORDER BY created_at DESC
+        "));
+
+        // Optional: format dates before sending
+        $registry = $registry->map(function ($item) {
+            $item->created_at = Carbon::parse($item->created_at)->format('Y-m-d');
+            $item->expiration_date = $item->expiration_date 
+                ? Carbon::parse($item->expiration_date)->format('Y-m-d')
+                : null;
+            return $item;
+        });
+
+        // ✅ Final JSON Response
+        return response()->json([
+            'accountStatus' => $accountStatus,
+            'roleDistribution' => $roles,
+            'newAccountsPerMonth' => $newAccountsPerMonth,
+            'registry' => $registry,
+        ]);
+    }
 }

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AxiosInstance from "../../../AxiosInstance";
+import book from "../../../assets/book_icon.png";
 import * as XLSX from "xlsx";
 import {
   PieChart,
@@ -15,7 +16,9 @@ import {
   BarChart,
   Bar,
   ResponsiveContainer,
+  PieLabelRenderProps,
 } from "recharts";
+import LoadingSpinner from "../../LoadingSpinner";
 
 const Reports = () => {
   useEffect(() => {
@@ -24,8 +27,11 @@ const Reports = () => {
   }, []);
 
   const [activeTab, setActiveTab] = useState("collection");
-  const [loading, setLoading] = useState(true);
+
+  // COLLECTION TAB STATES AND LOGIC
   const [loadingMasterlist, setLoadingMasterlist] = useState(false);
+  const [loadingCollectionData, setLoadingCollectionData] = useState(false);
+  const [masterlist, setMasterlist] = useState<any[]>([]);
 
   type ReportData = {
     materialsByType: { name: string; value: number }[];
@@ -41,33 +47,8 @@ const Reports = () => {
     booksPerDDC: [],
   });
 
-  const [masterlist, setMasterlist] = useState<any[]>([]);
-
-  const [circulationData, setCirculationData] = useState<any[]>([]);
-  const [totals, setTotals] = useState({
-    borrowed: 0,
-    returned: 0,
-    renewed: 0,
-    overdue: 0,
-    fines: 0,
-  });
-  const [loadingCirculation, setLoadingCirculation] = useState(false);
-
-  const DDC_COLORS: Record<string, string> = {
-    Technology: "#3B82F6",
-    Religion: "#10B981",
-    Philosophy: "#F59E0B",
-    "General Works": "#EF4444",
-    Arts: "#8B5CF6",
-    Languages: "#EC4899",
-    Literature: "#14B8A6",
-    "Social Sciences": "#F87171",
-    Science: "#FBBF24",
-    "History and geography": "#60A5FA",
-  };
-
   const fetchCollectionReports = async () => {
-    setLoading(true);
+    setLoadingCollectionData(true);
     try {
       const res = await AxiosInstance.get("/reports/collection");
 
@@ -120,9 +101,11 @@ const Reports = () => {
     } catch (error) {
       console.error("Error fetching reports:", error);
     } finally {
-      setLoading(false);
+      setLoadingCollectionData(false);
     }
   };
+
+  const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
 
   // Export masterlist to Excel
   const exportMasterlistToExcel = () => {
@@ -204,6 +187,16 @@ const Reports = () => {
     XLSX.writeFile(workbook, "masterlist.xlsx");
   };
 
+  const sortMasterlist = (order: "asc" | "desc") => {
+    const sorted = [...masterlist].sort((a, b) => {
+      const titleA = a.book?.title?.toLowerCase() ?? "";
+      const titleB = b.book?.title?.toLowerCase() ?? "";
+      if (order === "asc") return titleA.localeCompare(titleB);
+      else return titleB.localeCompare(titleA);
+    });
+    setMasterlist(sorted);
+  };
+
   const fetchMasterlist = async () => {
     setLoadingMasterlist(true);
     try {
@@ -216,7 +209,141 @@ const Reports = () => {
     }
   };
 
-  const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6"];
+  // CIRCULATION TAB STATES AND LOGIC
+  const [loadingCirculation, setLoadingCirculation] = useState(false);
+  const [circulationData, setCirculationData] = useState<any[]>([]);
+  const [totals, setTotals] = useState({
+    borrowed: 0,
+    returned: 0,
+    renewed: 0,
+    overdue: 0,
+    fines: 0,
+  });
+
+  const DDC_COLORS: Record<string, string> = {
+    Technology: "#3B82F6",
+    Religion: "#10B981",
+    Philosophy: "#F59E0B",
+    "General Works": "#EF4444",
+    Arts: "#8B5CF6",
+    Languages: "#EC4899",
+    Literature: "#14B8A6",
+    "Social Sciences": "#F87171",
+    Science: "#FBBF24",
+    "History and geography": "#60A5FA",
+  };
+
+  const [summarySort, setSummarySort] = useState<"asc" | "desc">("asc");
+
+  // Prepare table data
+  const total = reportData.materialsByType.reduce(
+    (sum, item) => sum + item.value,
+    0
+  );
+  const summaryData = reportData.materialsByType.map((item) => ({
+    ...item,
+    totalPercentage: (item.value / total) * 100,
+    activePercent: Math.floor(Math.random() * 50) + 20,
+  }));
+
+  // Sorting function
+  const sortSummary = (direction: "asc" | "desc") => {
+    setSummarySort(direction);
+  };
+
+  const sortedSummary = [...summaryData].sort((a, b) => {
+    if (summarySort === "asc") return a.value - b.value;
+    return b.value - a.value;
+  });
+
+  const exportSummaryToExcel = () => {
+    if (!reportData.materialsByType.length) return;
+
+    // Prepare data
+    const total = reportData.materialsByType.reduce(
+      (sum, item) => sum + item.value,
+      0
+    );
+    const data = reportData.materialsByType.map((item) => ({
+      "Material Type": item.name,
+      "Total Materials": item.value,
+      "Total Collection": ((item.value / total) * 100).toFixed(2) + "%",
+      "Active Circulation": Math.floor(Math.random() * 50 + 20) + "%",
+    }));
+
+    // Convert to worksheet
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Auto-width columns
+    const cols = Object.keys(data[0]).map((key) => {
+      const maxLength = Math.max(
+        key.length,
+        ...data.map((row) =>
+          row[key as keyof typeof row]
+            ? row[key as keyof typeof row]?.toString()?.length || 0
+            : 0
+        )
+      );
+      return { wch: Math.min(maxLength + 2, 50) };
+    });
+    worksheet["!cols"] = cols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Collection Summary");
+
+    XLSX.writeFile(workbook, "collection_summary.xlsx");
+  };
+
+  // Circulation tab sorting
+  const [circulationSort, setCirculationSort] = useState<"asc" | "desc">(
+    "desc"
+  );
+
+  // Sort function
+  const sortCirculation = (direction: "asc" | "desc") => {
+    setCirculationSort(direction);
+  };
+
+  // Sorted circulation data
+  const sortedCirculation = [...circulationData].sort((a, b) => {
+    if (circulationSort === "asc")
+      return a.year_month.localeCompare(b.year_month);
+    return b.year_month.localeCompare(a.year_month);
+  });
+
+  const exportCirculationToExcel = () => {
+    if (!circulationData.length) return;
+
+    const data = circulationData.map((row) => ({
+      Month: row.month,
+      Borrowed: row.borrowed,
+      Returned: row.returned,
+      Renewed: row.renewed,
+      Overdue: row.overdue,
+      Fines: Number(row.fines ?? 0).toFixed(2),
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // Auto-adjust column widths
+    const cols = Object.keys(data[0]).map((key) => {
+      const maxLength = Math.max(
+        key.length,
+        ...data.map((row) =>
+          // cast row to an indexable type so TypeScript accepts string indexing
+          (row as Record<string, any>)[key]
+            ? (row as Record<string, any>)[key].toString().length
+            : 0
+        )
+      );
+      return { wch: Math.min(maxLength + 2, 50) };
+    });
+    worksheet["!cols"] = cols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Circulation Summary");
+    XLSX.writeFile(workbook, "circulation_summary.xlsx");
+  };
 
   // For the circulation tab
   useEffect(() => {
@@ -239,18 +366,270 @@ const Reports = () => {
     }
   }, [activeTab]);
 
-  // Sort descending by year_month
-  const sortedCirculation = [...circulationData].sort((a, b) =>
-    b.year_month > a.year_month ? 1 : -1
+  // For the attendance tab
+  const [attendanceSort, setAttendanceSort] = useState<"asc" | "desc">("asc");
+
+  const [attendanceSummaryData, setAttendanceSummaryData] = useState<
+    { date: string; guest: number; patron: number; total: number }[]
+  >([]);
+  const [attendanceLogData, setAttendanceLogData] = useState<
+    {
+      id: number;
+      type: "guest" | "patron";
+      first_name?: string;
+      middle_name?: string;
+      last_name?: string;
+      suffix?: string;
+      patron_id?: number;
+      time_in: string;
+      time_out?: string | null;
+      date: string;
+      address?: string;
+      contact_number?: string;
+      purpose?: string;
+      affiliation?: string;
+      fullname: string;
+    }[]
+  >([]);
+  const [loadingAttendance, setLoadingAttendance] = useState(false);
+
+  // Fetch attendance data when the tab is active
+  useEffect(() => {
+    if (activeTab === "attendance") {
+      const fetchAttendanceReports = async () => {
+        setLoadingAttendance(true);
+        try {
+          // Fetch summary
+          const summaryRes = await AxiosInstance.get(
+            "/reports/attendance/summary"
+          );
+
+          const summaryArray = Array.isArray(summaryRes.data.rows)
+            ? summaryRes.data.rows
+            : [];
+
+          setAttendanceSummaryData(
+            summaryArray.map((row: any) => ({
+              date: row.date,
+              guest: Number(row.guest),
+              patron: Number(row.patron),
+              total: Number(row.total),
+            }))
+          );
+
+          // Fetch logs
+          const logRes = await AxiosInstance.get("/reports/attendance/log");
+
+          const logArray = logRes.data.logs || [];
+
+          setAttendanceLogData(
+            logArray.map((row: any) => ({
+              id: row.id,
+              date: row.date,
+              type: row.type,
+              fullname: row.fullname,
+              address: row.address ?? "-",
+              contact_number: row.contact_number ?? "-",
+              purpose: row.purpose ?? "-",
+              affiliation: row.affiliation ?? "-",
+              time_in: row.time_in,
+              time_out: row.time_out ?? "-",
+            }))
+          );
+        } catch (error) {
+          console.error("Error fetching attendance reports:", error);
+        } finally {
+          setLoadingAttendance(false);
+        }
+      };
+
+      fetchAttendanceReports();
+    }
+  }, [activeTab]);
+
+  // Sort function
+  const sortAttendanceLog = (order: "asc" | "desc") => {
+    const sorted = [...attendanceLogData].sort((a, b) => {
+      if (order === "asc") return a.date.localeCompare(b.date);
+      return b.date.localeCompare(a.date);
+    });
+    setAttendanceLogData(sorted);
+    setAttendanceSort(order);
+  };
+
+  // Export to Excel
+  const exportAttendanceLogToExcel = () => {
+    if (!attendanceLogData.length) return;
+
+    const data = attendanceLogData.map((row) => ({
+      Date: row.date,
+      Type: row.type,
+      "Full Name": row.fullname,
+      Address: row.address,
+      "Contact Number": row.contact_number,
+      "Purpose of Visit": row.purpose,
+      Affiliation: row.affiliation,
+      "Time In": row.time_in,
+      "Time Out": row.time_out,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const cols = Object.keys(data[0]).map((key) => {
+      const maxLength = Math.max(
+        key.length,
+        ...data.map((row) =>
+          row[key as keyof typeof row] != null
+            ? (row[key as keyof typeof row] ?? "").toString().length
+            : 0
+        )
+      );
+      return { wch: Math.min(maxLength + 2, 50) };
+    });
+    worksheet["!cols"] = cols;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Attendance Log");
+    XLSX.writeFile(workbook, "attendance_log.xlsx");
+  };
+
+  // accounts
+  const [userRole, setUserRole] = useState<"admin" | "staff">("staff");
+
+  const [accountStatus, setAccountStatus] = useState<any[]>([]);
+  const [roleDistribution, setRoleDistribution] = useState<any[]>([]);
+  const [newAccountsPerMonth, setNewAccountsPerMonth] = useState<any[]>([]);
+  const [accountsData, setAccountsData] = useState<any[]>([]);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [loadingAccountsData, setLoadingAccountsData] = useState(false);
+
+  useEffect(() => {
+    if (activeTab !== "accounts") return;
+    setLoadingAccountsData(true);
+    AxiosInstance.get("/reports/accounts")
+      .then((res) => {
+        setAccountStatus(res.data.accountStatus);
+        setRoleDistribution(res.data.roleDistribution);
+        setNewAccountsPerMonth(res.data.newAccountsPerMonth);
+        setAccountsData(res.data.registry);
+      })
+      .finally(() => {
+        setLoadingAccountsData(false);
+      });
+  }, [activeTab]);
+
+  // 🔹 SORT FUNCTION
+  const sortAccountRegistry = (order: "asc" | "desc") => {
+    const sortedData = [...accountsData].sort((a, b) => {
+      const nameA = a.full_name.toLowerCase();
+      const nameB = b.full_name.toLowerCase();
+
+      if (nameA < nameB) return order === "asc" ? -1 : 1;
+      if (nameA > nameB) return order === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    setAccountsData(sortedData);
+    setSortOrder(order);
+  };
+
+  // 🔹 EXPORT FUNCTION
+  const exportAccountRegistryToExcel = () => {
+    if (!accountsData.length) return alert("No account data to export!");
+
+    const worksheetData = accountsData.map((user) => ({
+      "User ID": user.user_id,
+      "Full Name": user.full_name,
+      Role: user.role,
+      Status: user.status,
+      "Date Registered": new Date(user.created_at).toLocaleDateString(),
+      Expiration: user.expiration_date
+        ? new Date(user.expiration_date).toLocaleDateString()
+        : "N/A",
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Account Registry");
+    XLSX.writeFile(workbook, "Account_Registry_Report.xlsx");
+  };
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const res = await AxiosInstance.get("/user"); // Adjust endpoint if needed
+        setUserRole(res.data.role); // assuming backend returns { role: "admin" | "staff" }
+      } catch (error) {
+        console.error("Error fetching user role:", error);
+      }
+    };
+    fetchUserRole();
+  }, []);
+
+  // Pagination states
+  // ===== ATTENDANCE LOG PAGINATION =====
+  const [currentPageAttendance, setCurrentPageAttendance] = useState(1);
+  const rowsPerPageAttendance = 10;
+
+  const totalPagesAttendance = Math.ceil(
+    attendanceLogData.length / rowsPerPageAttendance
+  );
+  const indexOfLastAttendance = currentPageAttendance * rowsPerPageAttendance;
+  const indexOfFirstAttendance = indexOfLastAttendance - rowsPerPageAttendance;
+  const currentAttendance = attendanceLogData.slice(
+    indexOfFirstAttendance,
+    indexOfLastAttendance
+  );
+
+  // ===== CIRCULATION PAGINATION =====
+  const [currentPageCirculation, setCurrentPageCirculation] = useState(1);
+  const rowsPerPageCirculation = 6;
+
+  const totalPagesCirculation = Math.ceil(
+    sortedCirculation.length / rowsPerPageCirculation
+  );
+  const indexOfLastCirculation =
+    currentPageCirculation * rowsPerPageCirculation;
+  const indexOfFirstCirculation =
+    indexOfLastCirculation - rowsPerPageCirculation;
+  const currentCirculation = sortedCirculation.slice(
+    indexOfFirstCirculation,
+    indexOfLastCirculation
+  );
+
+  // ===== MASTERLIST PAGINATION =====
+  const [currentPageMasterlist, setCurrentPageMasterlist] = useState(1);
+  const rowsPerPageMasterlist = 10;
+
+  const totalPagesMasterlist = Math.ceil(
+    masterlist.length / rowsPerPageMasterlist
+  );
+  const indexOfLastMasterlist = currentPageMasterlist * rowsPerPageMasterlist;
+  const indexOfFirstMasterlist = indexOfLastMasterlist - rowsPerPageMasterlist;
+  const currentMasterlist = masterlist.slice(
+    indexOfFirstMasterlist,
+    indexOfLastMasterlist
+  );
+
+  // ===== ACCOUNT REGISTRY PAGINATION =====
+  const [currentPageAccounts, setCurrentPageAccounts] = useState(1);
+  const rowsPerPageAccounts = 10;
+
+  const totalPagesAccounts = Math.ceil(
+    accountsData.length / rowsPerPageAccounts
+  );
+  const indexOfLastAccounts = currentPageAccounts * rowsPerPageAccounts;
+  const indexOfFirstAccounts = indexOfLastAccounts - rowsPerPageAccounts;
+  const currentAccounts = accountsData.slice(
+    indexOfFirstAccounts,
+    indexOfLastAccounts
   );
 
   const renderTabContent = () => {
-    if (loading) {
-      return <div className="loading">Loading report data...</div>;
-    }
-
     switch (activeTab) {
       case "collection":
+        if (loadingCollectionData) {
+          return <LoadingSpinner />;
+        }
         return (
           <>
             <div className="charts-grid">
@@ -362,7 +741,27 @@ const Reports = () => {
 
             {/* 📊 Collection Overview Summary */}
             <div className="collection-summary-section">
-              <h2 className="summary-title">Collection Overview Summary</h2>
+              <div className="summary-header-bar">
+                {/* Left: Sorting */}
+                <div className="header-left">
+                  <button onClick={() => sortSummary("asc")}>↑ ASC</button>
+                  <button onClick={() => sortSummary("desc")}>↓ DESC</button>
+                </div>
+
+                {/* Center: Title */}
+                <h2 className="summary-title">Collection Overview Summary</h2>
+
+                {/* Right: Print / Export */}
+                <div className="header-right">
+                  <button
+                    onClick={exportSummaryToExcel}
+                    className="print-button"
+                  >
+                    <i className="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Export
+                  </button>
+                </div>
+              </div>
               <div className="summary-table-container">
                 <table className="summary-table">
                   <thead>
@@ -402,17 +801,29 @@ const Reports = () => {
 
             {/* Masterlist Table */}
             <div className="masterlist-section">
-              <div className="masterlist-header">
+              <div className="masterlist-header-bar">
+                {/* Left: Sorting */}
+                <div className="header-left">
+                  <button onClick={() => sortMasterlist("asc")}>↑ ASC</button>
+                  <button onClick={() => sortMasterlist("desc")}>↓ DESC</button>
+                </div>
+
+                {/* Center: Title */}
                 <h2 className="masterlist-title">Collection Masterlist</h2>
-                <button
-                  className="print-button"
-                  onClick={exportMasterlistToExcel}
-                >
-                  📄 Export to Excel
-                </button>
+
+                {/* Right: Export */}
+                <div className="header-right">
+                  <button
+                    className="print-button"
+                    onClick={exportMasterlistToExcel}
+                  >
+                    <i className="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Export
+                  </button>
+                </div>
               </div>
               {loadingMasterlist ? (
-                <div>Loading masterlist...</div>
+                <LoadingSpinner />
               ) : (
                 <div className="masterlist-container">
                   <table className="masterlist-table">
@@ -445,7 +856,7 @@ const Reports = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {masterlist.map((copy, i) => (
+                      {currentMasterlist.map((copy, i) => (
                         <tr key={i}>
                           <td>{copy.accession_number}</td>
                           <td>{copy.barcode}</td>
@@ -494,11 +905,54 @@ const Reports = () => {
                           <td>{copy.source}</td>
                           <td>{copy.source_person}</td>
                           <td>{copy.status}</td>
-                          <td>{copy.date_added}</td>
+                          <td>
+                            {copy.date_added
+                              ? new Date(copy.date_added)
+                                  .toISOString()
+                                  .split("T")[0]
+                              : "N/A"}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* === Pagination Info + Buttons === */}
+              <div className="pagination-info-report text-center mb-2 mt-3">
+                Showing {indexOfFirstMasterlist + 1} -{" "}
+                {Math.min(indexOfLastMasterlist, masterlist.length)} of{" "}
+                {masterlist.length} entries
+              </div>
+
+              {totalPagesMasterlist > 1 && (
+                <div className="pagination-report mt-1">
+                  <button
+                    disabled={currentPageMasterlist === 1}
+                    onClick={() => setCurrentPageMasterlist((p) => p - 1)}
+                  >
+                    <i className="bi bi-chevron-double-left"></i> Prev
+                  </button>
+
+                  {Array.from({ length: totalPagesMasterlist }, (_, i) => (
+                    <button
+                      key={i}
+                      className={
+                        currentPageMasterlist === i + 1 ? "active" : ""
+                      }
+                      onClick={() => setCurrentPageMasterlist(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPageMasterlist === totalPagesMasterlist}
+                    onClick={() => setCurrentPageMasterlist((p) => p + 1)}
+                  >
+                    Next <i className="bi bi-chevron-double-right"></i>
+                  </button>
                 </div>
               )}
             </div>
@@ -507,7 +961,7 @@ const Reports = () => {
 
       case "circulation":
         if (loadingCirculation) {
-          return <div>Loading circulation data...</div>;
+          return <LoadingSpinner />;
         }
 
         return (
@@ -527,10 +981,30 @@ const Reports = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="borrowed" fill="#3B82F6" name="Borrowed" />
-                    <Bar dataKey="returned" fill="#10B981" name="Returned" />
-                    <Bar dataKey="renewed" fill="#F59E0B" name="Renewed" />
-                    <Bar dataKey="overdue" fill="#EF4444" name="Overdue" />
+                    <Bar
+                      dataKey="borrowed"
+                      stackId="a"
+                      fill="#3B82F6"
+                      name="Borrowed"
+                    />
+                    <Bar
+                      dataKey="returned"
+                      stackId="a"
+                      fill="#10B981"
+                      name="Returned"
+                    />
+                    <Bar
+                      dataKey="renewed"
+                      stackId="a"
+                      fill="#F59E0B"
+                      name="Renewed"
+                    />
+                    <Bar
+                      dataKey="overdue"
+                      stackId="a"
+                      fill="#EF4444"
+                      name="Overdue"
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -539,25 +1013,54 @@ const Reports = () => {
               <div className="circulation-tallies">
                 {[
                   {
-                    label: "Borrowed",
+                    label: "BORROWED",
                     value: totals.borrowed,
                     color: "#3B82F6",
+                    image: book,
                   },
                   {
-                    label: "Returned",
+                    label: "RETURNED",
                     value: totals.returned,
                     color: "#10B981",
+                    image: book,
                   },
-                  { label: "Renewed", value: totals.renewed, color: "#F59E0B" },
-                  { label: "Overdue", value: totals.overdue, color: "#EF4444" },
+                  {
+                    label: "RENEWED",
+                    value: totals.renewed,
+                    color: "#F59E0B",
+                    image: book,
+                  },
+                  {
+                    label: "OVERDUE",
+                    value: totals.overdue,
+                    color: "#EF4444",
+                    image: book,
+                  },
                 ].map((tally) => (
                   <div
                     className="tally-card-circ"
                     key={tally.label}
-                    style={{ borderLeft: `6px solid ${tally.color}` }}
+                    style={{
+                      border: `3px solid ${tally.color}`,
+                      borderLeft: `10px solid ${tally.color}`,
+                    }}
                   >
-                    <div className="label">{tally.label}</div>
-                    <div className="value">{tally.value}</div>
+                    <img
+                      src={tally.image}
+                      alt={tally.label}
+                      className="tally-image "
+                      style={{
+                        backgroundColor: tally.color,
+                        padding: "5px 15px",
+                        borderRadius: "8px",
+                      }}
+                    />
+                    <div className="tally-text">
+                      <div className="label" style={{ color: tally.color }}>
+                        {tally.label}
+                      </div>
+                      <div className="value">{tally.value}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -565,7 +1068,28 @@ const Reports = () => {
 
             {/* ===== Row 2: Summary Table ===== */}
             <div className="circulation-table-section">
-              <h2 className="summary-title">Circulation Summary Table</h2>
+              <div className="summary-header-bar">
+                {/* Left: Sorting */}
+                <div className="header-left">
+                  <button onClick={() => sortCirculation("asc")}>↑ ASC</button>
+                  <button onClick={() => sortCirculation("desc")}>
+                    ↓ DESC
+                  </button>
+                </div>
+
+                {/* Center: Title */}
+                <h2 className="summary-title">Circulation Summary Table</h2>
+
+                {/* Right: Print / Export */}
+                <div className="header-right">
+                  <button
+                    onClick={exportCirculationToExcel}
+                    className="print-button"
+                  >
+                    <i className="bi bi-file-earmark-spreadsheet me-2"></i>Export
+                  </button>
+                </div>
+              </div>
               <div className="table-wrapper">
                 <table className="summary-table">
                   <thead>
@@ -579,8 +1103,8 @@ const Reports = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedCirculation.length > 0 ? (
-                      sortedCirculation.map((row, i) => (
+                    {currentCirculation.length > 0 ? (
+                      currentCirculation.map((row, i) => (
                         <tr key={i}>
                           <td>{row.month}</td>
                           <td>{row.borrowed}</td>
@@ -600,14 +1124,503 @@ const Reports = () => {
                   </tbody>
                 </table>
               </div>
+
+              {/* === Pagination Info + Buttons === */}
+              <div className="pagination-info-report text-center mb-2 mt-3">
+                Showing {indexOfFirstCirculation + 1} -{" "}
+                {Math.min(indexOfLastCirculation, sortedCirculation.length)} of{" "}
+                {sortedCirculation.length} rows
+              </div>
+
+              {totalPagesCirculation > 1 && (
+                <div className="pagination-report mt-1">
+                  <button
+                    disabled={currentPageCirculation === 1}
+                    onClick={() => setCurrentPageCirculation((p) => p - 1)}
+                  >
+                    <i className="bi bi-chevron-double-left"></i> Prev
+                  </button>
+                  {Array.from({ length: totalPagesCirculation }, (_, i) => (
+                    <button
+                      key={i}
+                      className={
+                        currentPageCirculation === i + 1 ? "active" : ""
+                      }
+                      onClick={() => setCurrentPageCirculation(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button
+                    disabled={currentPageCirculation === totalPagesCirculation}
+                    onClick={() => setCurrentPageCirculation((p) => p + 1)}
+                  >
+                    Next <i className="bi bi-chevron-double-right"></i>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         );
 
       case "attendance":
+        if (loadingAttendance) return <LoadingSpinner />;
+
+        // Prepare chart data
+        const barChartData = attendanceSummaryData.map((row) => ({
+          date: row.date,
+          Guest: row.guest,
+          Patron: row.patron,
+        }));
+        const lineChartData = attendanceSummaryData.map((row) => ({
+          date: row.date,
+          Visitors: row.total,
+        }));
+        const summaryData = attendanceSummaryData;
+        const logData = attendanceLogData;
+
         return (
-          <div className="placeholder">
-            🧍 Attendance reports coming soon...
+          <div className="attendance-section">
+            {/* ===== Row 1: Charts + Summary Table ===== */}
+            <div className="attendance-top">
+              {/* Left: Charts */}
+              <div className="attendance-charts">
+                <div className="chart-container">
+                  <h2>Patron vs Guest Attendance</h2>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={barChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="Guest" fill="#8884d8" />
+                      <Bar dataKey="Patron" fill="#82ca9d" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="chart-container" style={{ marginTop: "20px" }}>
+                  <h2>Daily Visitors</h2>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={lineChartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="Visitors"
+                        stroke="#ff7300"
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Right: Attendance Summary Table */}
+              <div className="attendance-summary">
+                <h2 className="summary-title">Attendance Summary</h2>
+                <div className="table-wrapper">
+                  <table className="summary-table">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Guest</th>
+                        <th>Patron</th>
+                        <th>Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {summaryData.length ? (
+                        [...summaryData] // create a shallow copy so we don’t mutate the original
+                          .sort(
+                            (a, b) =>
+                              new Date(b.date).getTime() -
+                              new Date(a.date).getTime()
+                          ) // sort descending by date
+                          .map((row, i) => (
+                            <tr key={i}>
+                              <td>{row.date}</td>
+                              <td>{row.guest}</td>
+                              <td>{row.patron}</td>
+                              <td>{row.total}</td>
+                            </tr>
+                          ))
+                      ) : (
+                        <tr>
+                          <td colSpan={4} style={{ textAlign: "center" }}>
+                            No attendance summary available.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* ===== Row 2: Attendance Log Table ===== */}
+            <div className="attendance-log-section">
+              <div className="summary-header-bar">
+                {/* Left: Sorting */}
+                <div className="header-left">
+                  <button onClick={() => sortAttendanceLog("asc")}>
+                    ↑ ASC
+                  </button>
+                  <button onClick={() => sortAttendanceLog("desc")}>
+                    ↓ DESC
+                  </button>
+                </div>
+
+                {/* Center: Title */}
+                <h2 className="summary-title">Attendance Log</h2>
+
+                {/* Right: Export */}
+                <div className="header-right">
+                  <button
+                    onClick={exportAttendanceLogToExcel}
+                    className="print-button"
+                  >
+                    <i className="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Export
+                  </button>
+                </div>
+              </div>
+
+              <div className="attendance-log-container">
+                <table className="attendance-log-table">
+                  <thead>
+                    <tr>
+                      <th>Date</th>
+                      <th>Type</th>
+                      <th>Full Name</th>
+                      <th>Address</th>
+                      <th>Contact Number</th>
+                      <th>Purpose of Visit</th>
+                      <th>Affiliation</th>
+                      <th>Time In</th>
+                      <th>Time Out</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentAttendance.length ? (
+                      currentAttendance.map((row) => (
+                        <tr key={row.id}>
+                          <td>{row.date}</td>
+                          <td>{row.type}</td>
+                          <td>{row.fullname}</td>
+                          <td>{row.address ?? "-"}</td>
+                          <td>{row.contact_number ?? "-"}</td>
+                          <td>{row.purpose ?? "-"}</td>
+                          <td>{row.affiliation ?? "-"}</td>
+                          <td>{row.time_in}</td>
+                          <td>{row.time_out ?? "-"}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={9} style={{ textAlign: "center" }}>
+                          No attendance logs available.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* === Pagination Info + Buttons === */}
+              <div className="pagination-info-report text-center mb-2 mt-3">
+                Showing {indexOfFirstAttendance + 1} -{" "}
+                {Math.min(indexOfLastAttendance, logData.length)} of{" "}
+                {logData.length} attendance logs
+              </div>
+
+              {totalPagesAttendance > 1 && (
+                <div className="pagination-report mt-1">
+                  <button
+                    disabled={currentPageAttendance === 1}
+                    onClick={() => setCurrentPageAttendance((p) => p - 1)}
+                  >
+                    <i className="bi bi-chevron-double-left"></i> Prev
+                  </button>
+                  {Array.from({ length: totalPagesAttendance }, (_, i) => (
+                    <button
+                      key={i}
+                      className={
+                        currentPageAttendance === i + 1 ? "active" : ""
+                      }
+                      onClick={() => setCurrentPageAttendance(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button
+                    disabled={currentPageAttendance === totalPagesAttendance}
+                    onClick={() => setCurrentPageAttendance((p) => p + 1)}
+                  >
+                    Next <i className="bi bi-chevron-double-right"></i>
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        );
+
+      case "accounts":
+        // Map backend status to chart key
+        const statusMapping: { [key: string]: string } = {
+          active: "active",
+          deactivated: "deactivate", // backend "Deactivated" maps to "deactivate"
+          expired: "expired",
+          blocked: "blocked",
+        };
+
+        // Define colors per status
+        const statusColors: { [key: string]: string } = {
+          active: "#98FF79",
+          deactivate: "#FFCC59",
+          expired: "#E77135",
+          blocked: "#FF0000",
+        };
+
+        if (loadingAccountsData) {
+          return <LoadingSpinner />;
+        }
+
+        return (
+          <div className="accounts-section">
+            {/* ===== TOP ROW: 3 CHARTS ===== */}
+            <div className="charts-row">
+              {/* 1️⃣ Bar Graph */}
+              <div className="chart-card">
+                <h3>Account Status</h3>
+                {/* Simple manual legend */}
+                <div className="legend">
+                  {Object.entries(statusColors).map(([status, color]) => (
+                    <div className="legend-item text-muted" key={status}>
+                      <div
+                        className="legend-color"
+                        style={{
+                          backgroundColor: color,
+                        }}
+                      />
+                      <span>
+                        {status.charAt(0).toUpperCase() + status.slice(1)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={accountStatus}>
+                    <XAxis dataKey="status" />
+                    <YAxis />
+
+                    {/* Tooltip showing only hovered bar */}
+                    <Tooltip
+                      formatter={(value: any, name: string) => [
+                        value,
+                        name.charAt(0).toUpperCase() + name.slice(1),
+                      ]}
+                    />
+
+                    {/* Single Bar, Cells for coloring */}
+                    <Bar dataKey="total">
+                      {accountStatus.map((entry, index) => {
+                        const statusKey =
+                          statusMapping[entry.status.toLowerCase()] ||
+                          entry.status.toLowerCase();
+                        return (
+                          <Cell
+                            key={index}
+                            fill={statusColors[statusKey] || "#4e73df"}
+                          />
+                        );
+                      })}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* 2️⃣ Donut Chart */}
+              <div className="chart-card">
+                <h3>Accounts Distribution</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <PieChart>
+                    <Pie
+                      data={roleDistribution}
+                      dataKey="total"
+                      nameKey="role"
+                      innerRadius={60}
+                      outerRadius={100}
+                      fill="#82ca9d"
+                      label={(props: PieLabelRenderProps) => {
+                        const { name, percent, x, y } = props;
+                        const pct = Number(percent ?? 0);
+                        return (
+                          <text
+                            x={x}
+                            y={y}
+                            textAnchor="middle"
+                            dominantBaseline="central"
+                            fontSize={12}
+                          >
+                            {name}: {(pct * 100).toFixed(2)}%
+                          </text>
+                        );
+                      }}
+                    >
+                      {roleDistribution.map((entry, index) => (
+                        <Cell
+                          key={`cell-${index}`}
+                          fill={["#36A2EB", "#FFCE56", "#FF6384"][index % 3]}
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* 3️⃣ Line Graph */}
+              <div className="chart-card">
+                <h3>Newly Added Accounts</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={newAccountsPerMonth}>
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Line
+                      type="monotone"
+                      dataKey="total"
+                      stroke="#8884d8"
+                      strokeWidth={2}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* ===== REGISTRY TABLE ===== */}
+            <div className="accounts-registry-container">
+              <div className="summary-header-bar">
+                {/* Left: Sorting */}
+                <div className="header-left">
+                  <button
+                    className={`sort-button ${
+                      sortOrder === "asc" ? "active" : ""
+                    }`}
+                    onClick={() => sortAccountRegistry("asc")}
+                  >
+                    ↑ ASC
+                  </button>
+                  <button
+                    className={`sort-button ${
+                      sortOrder === "desc" ? "active" : ""
+                    }`}
+                    onClick={() => sortAccountRegistry("desc")}
+                  >
+                    ↓ DESC
+                  </button>
+                </div>
+
+                {/* Center: Title */}
+                <h2 className="summary-title">Account Registry Table</h2>
+
+                {/* Right: Export */}
+                <div className="header-right">
+                  <button
+                    onClick={exportAccountRegistryToExcel}
+                    className="print-button"
+                  >
+                    <i className="bi bi-file-earmark-spreadsheet me-2"></i>
+                    Export
+                  </button>
+                </div>
+              </div>
+              <table className="accounts-table">
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Full Name</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Date Registered</th>
+                    <th>Expiration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentAccounts?.length ? (
+                    currentAccounts.map((user) => (
+                      <tr key={`${user.user_id}-${user.role}`}>
+                        <td>{user.user_id}</td>
+                        <td>{user.full_name}</td>
+                        <td>{user.role}</td>
+                        <td>
+                          <span
+                            className={`status-badges status-${user.status.toLowerCase()}`}
+                          >
+                            {user.status}
+                          </span>
+                        </td>
+                        <td>
+                          {new Date(user.created_at).toLocaleDateString()}
+                        </td>
+                        <td>
+                          {user.expiration_date
+                            ? new Date(
+                                user.expiration_date
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: "center" }}>
+                        No account data available.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              {/* === Pagination Info + Buttons === */}
+              <div className="pagination-info-report text-center mb-2 mt-3">
+                Showing {indexOfFirstAccounts + 1} -{" "}
+                {Math.min(indexOfLastAccounts, accountsData.length)} of{" "}
+                {accountsData.length} accounts
+              </div>
+
+              {totalPagesAccounts > 1 && (
+                <div className="pagination-report mt-1">
+                  <button
+                    disabled={currentPageAccounts === 1}
+                    onClick={() => setCurrentPageAccounts((p) => p - 1)}
+                  >
+                    <i className="bi bi-chevron-double-left"></i> Prev
+                  </button>
+
+                  {Array.from({ length: totalPagesAccounts }, (_, i) => (
+                    <button
+                      key={i}
+                      className={currentPageAccounts === i + 1 ? "active" : ""}
+                      onClick={() => setCurrentPageAccounts(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+
+                  <button
+                    disabled={currentPageAccounts === totalPagesAccounts}
+                    onClick={() => setCurrentPageAccounts((p) => p + 1)}
+                  >
+                    Next <i className="bi bi-chevron-double-right"></i>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         );
 
@@ -618,8 +1631,6 @@ const Reports = () => {
 
   return (
     <div className="reports-container">
-      <h1 className="reports-title">Reports</h1>
-
       <div className="tabs">
         <button
           className={`tab-button ${activeTab === "collection" ? "active" : ""}`}
@@ -641,6 +1652,15 @@ const Reports = () => {
         >
           Attendance Reports
         </button>
+
+        {userRole === "admin" && (
+          <button
+            className={`tab-button ${activeTab === "accounts" ? "active" : ""}`}
+            onClick={() => setActiveTab("accounts")}
+          >
+            Accounts Reports
+          </button>
+        )}
       </div>
 
       {renderTabContent()}

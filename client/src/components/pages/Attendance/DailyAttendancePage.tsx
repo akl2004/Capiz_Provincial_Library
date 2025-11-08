@@ -3,6 +3,10 @@ import AxiosInstance from "../../../AxiosInstance";
 import { useLocation, useNavigate } from "react-router-dom";
 import LoadingSpinner from "../../LoadingSpinner";
 
+import provinceListData from "../../../data/ph_addresses/province.json";
+import cityListData from "../../../data/ph_addresses/city.json";
+import barangayListData from "../../../data/ph_addresses/barangay.json";
+
 interface Attendance {
   id: number;
   first_name: string;
@@ -18,6 +22,30 @@ interface Attendance {
   purpose_of_visit: string;
   time_in: string | null;
   time_out: string | null;
+}
+
+const provinceList = provinceListData as Province[];
+const cityList = cityListData as City[];
+const barangayList = barangayListData as Barangay[];
+
+// Types
+interface Province {
+  province_code: string;
+  province_name: string;
+  region_code: string;
+}
+
+interface City {
+  city_code: string;
+  city_name: string;
+  province_code: string;
+}
+
+interface Barangay {
+  brgy_code: string;
+  brgy_name: string;
+  city_code: string;
+  province_code: string;
 }
 
 const DailyAttendancePage = () => {
@@ -42,6 +70,20 @@ const DailyAttendancePage = () => {
     purpose_of_visit: "",
   });
 
+  // Address parts
+  const [province, setProvince] = useState("");
+  const [city, setCity] = useState("");
+  const [barangay, setBarangay] = useState("");
+
+  // Suggestions
+  const [provinceSuggestions, setProvinceSuggestions] = useState<Province[]>(
+    []
+  );
+  const [citySuggestions, setCitySuggestions] = useState<City[]>([]);
+  const [barangaySuggestions, setBarangaySuggestions] = useState<Barangay[]>(
+    []
+  );
+
   const navigate = useNavigate();
 
   const location = useLocation();
@@ -55,10 +97,63 @@ const DailyAttendancePage = () => {
   const fetchTodayAttendances = async () => {
     try {
       const res = await AxiosInstance.get("/attendances/today");
-      setAttendances(res.data);
+      // Sort newest first (based on time_in or id)
+      const sorted = res.data.sort(
+        (a: Attendance, b: Attendance) =>
+          new Date(b.time_in || 0).getTime() -
+          new Date(a.time_in || 0).getTime()
+      );
+      setAttendances(sorted);
     } catch (err) {
       console.error(err);
     }
+  };
+
+
+  // Suggestion handlers
+  const handleProvinceChange = (value: string) => {
+    setProvince(value);
+    setProvinceSuggestions(
+      provinceList
+        .filter((p) =>
+          p.province_name.toLowerCase().includes(value.toLowerCase())
+        )
+        .slice(0, 4)
+    );
+  };
+
+  const handleCityChange = (value: string) => {
+    setCity(value);
+    const selectedProvince = provinceList.find(
+      (p) => p.province_name.toLowerCase() === province.toLowerCase()
+    );
+    if (!selectedProvince) return setCitySuggestions([]);
+    setCitySuggestions(
+      cityList
+        .filter(
+          (c) =>
+            c.province_code === selectedProvince.province_code &&
+            c.city_name.toLowerCase().includes(value.toLowerCase())
+        )
+        .slice(0, 4)
+    );
+  };
+
+  const handleBarangayChange = (value: string) => {
+    setBarangay(value);
+    const selectedCity = cityList.find(
+      (c) => c.city_name.toLowerCase() === city.toLowerCase()
+    );
+    if (!selectedCity) return setBarangaySuggestions([]);
+    setBarangaySuggestions(
+      barangayList
+        .filter(
+          (b) =>
+            b.city_code === selectedCity.city_code &&
+            b.brgy_name.toLowerCase().includes(value.toLowerCase())
+        )
+        .slice(0, 4)
+    );
   };
 
   const handleChange = (
@@ -75,7 +170,10 @@ const DailyAttendancePage = () => {
     try {
       await AxiosInstance.post("/attendances", {
         ...form,
-        patron_id: form.dbPatronId || null, // ✅ foreign key
+        province,
+        city,
+        barangay,
+        patron_id: form.dbPatronId || null,
       });
       setOpen(false);
       setForm({
@@ -93,6 +191,9 @@ const DailyAttendancePage = () => {
         affiliation: "",
         purpose_of_visit: "",
       });
+      setProvince("");
+      setCity("");
+      setBarangay("");
       fetchTodayAttendances();
     } catch (err) {
       console.error(err);
@@ -100,6 +201,7 @@ const DailyAttendancePage = () => {
       setLoading(false);
     }
   };
+
 
   const handleTimeOut = async (id: number) => {
     try {
@@ -131,11 +233,13 @@ const DailyAttendancePage = () => {
         barangay: patron.barangay || "",
         email: patron.email || "",
         number: patron.number || "",
-        // Keep the previous purpose and affiliation editable
         affiliation: prev.affiliation,
         purpose_of_visit: prev.purpose_of_visit,
-        dbPatronId: patron.id, // ✅ actual foreign key
+        dbPatronId: patron.id,
       }));
+      setProvince(patron.province || "");
+      setCity(patron.city || "");
+      setBarangay(patron.barangay || "");
     } catch (err) {
       console.error("Patron not found", err);
     }
@@ -157,7 +261,7 @@ const DailyAttendancePage = () => {
   return (
     <div className="attendance-container">
       {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center">
         <div>
           <h1 className="text-xl font-semibold mb-0">Today's Attendance</h1>
           <p className="mb-0">
@@ -214,8 +318,6 @@ const DailyAttendancePage = () => {
               <th>Purpose</th>
               <th>Time In</th>
               <th>Time Out</th>
-              <th>Status</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody>
@@ -230,22 +332,20 @@ const DailyAttendancePage = () => {
                 <td>{att.affiliation || "-"}</td>
                 <td>{att.purpose_of_visit}</td>
                 <td>
-                  {att.time_in ? new Date(att.time_in).toLocaleString() : "-"}
+                  {att.time_in
+                    ? new Date(att.time_in).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })
+                    : "-"}
                 </td>
                 <td>
-                  {att.time_out ? new Date(att.time_out).toLocaleString() : "-"}
-                </td>
-                <td>
-                  <span
-                    className={`status-badge ${
-                      att.time_out ? "status-out" : "status-in"
-                    }`}
-                  >
-                    {att.time_out ? "Timed Out" : "Timed In"}
-                  </span>
-                </td>
-                <td>
-                  {!att.time_out && (
+                  {att.time_out ? (
+                    new Date(att.time_out).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  ) : (
                     <button
                       onClick={() => handleTimeOut(att.id)}
                       className="timeout-btn"
@@ -357,32 +457,79 @@ const DailyAttendancePage = () => {
                   />
                 </div>
 
-                {/* Address Row */}
+                {/* Province, City, Barangay */}
                 <div className="address-row mb-0">
-                  <input
-                    name="province"
-                    value={form.province}
-                    onChange={handleChange}
-                    placeholder="Province"
-                    required
-                    disabled={loading}
-                  />
-                  <input
-                    name="city"
-                    value={form.city}
-                    onChange={handleChange}
-                    placeholder="City"
-                    required
-                    disabled={loading}
-                  />
-                  <input
-                    name="barangay"
-                    value={form.barangay}
-                    onChange={handleChange}
-                    placeholder="Barangay"
-                    required
-                    disabled={loading}
-                  />
+                  <div className="input-wrapper">
+                    <input
+                      placeholder="Province"
+                      value={province}
+                      onChange={(e) => handleProvinceChange(e.target.value)}
+                    />
+                    {provinceSuggestions.length > 0 && (
+                      <ul className="suggestion-lists">
+                        {provinceSuggestions.map((p) => (
+                          <li
+                            key={p.province_code}
+                            onClick={() => {
+                              handleProvinceChange(p.province_name);
+                              setProvinceSuggestions([]);
+                            }}
+                            className="suggestion-item"
+                          >
+                            {p.province_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="input-wrapper">
+                    <input
+                      placeholder="City"
+                      value={city}
+                      onChange={(e) => handleCityChange(e.target.value)}
+                    />
+                    {citySuggestions.length > 0 && (
+                      <ul className="suggestion-lists">
+                        {citySuggestions.map((c) => (
+                          <li
+                            key={c.city_code}
+                            onClick={() => {
+                              handleCityChange(c.city_name);
+                              setCitySuggestions([]);
+                            }}
+                            className="suggestion-item"
+                          >
+                            {c.city_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  <div className="input-wrapper">
+                    <input
+                      placeholder="Barangay"
+                      value={barangay}
+                      onChange={(e) => handleBarangayChange(e.target.value)}
+                    />
+                    {barangaySuggestions.length > 0 && (
+                      <ul className="suggestion-lists">
+                        {barangaySuggestions.map((b) => (
+                          <li
+                            key={b.brgy_code}
+                            onClick={() => {
+                              handleBarangayChange(b.brgy_name);
+                              setBarangaySuggestions([]);
+                            }}
+                            className="suggestion-item"
+                          >
+                            {b.brgy_name}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
 
                 <input

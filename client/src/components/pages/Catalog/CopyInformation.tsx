@@ -92,55 +92,56 @@ const CopyInformation: React.FC = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <button
-        onClick={() => {
-          const role = localStorage.getItem("role")?.toLowerCase();
-          if (role === "admin") {
-            navigate(`/admin/cataloging/${id}`);
-          } else if (role === "staff") {
-            navigate(`/staff/cataloging/${id}`);
-          }
-        }}
-        className="py-2 px-4 mb-4 bg-gray-200 hover:bg-gray-300 rounded"
-      >
-        ← Back
-      </button>
-
       {/* Accession Record */}
       <div className="copies-info mt-4">
-        <h1 className="text-xl font-semibold mb-4">Accession Record</h1>
-
-        <table className="custom-table w-full">
+        <h1 className="text-xl font-semibold mb-4">
+          <span
+            className="me-2"
+            style={{ cursor: "pointer" }}
+            onClick={() => {
+              const role = localStorage.getItem("role")?.toLowerCase();
+              navigate(
+                role === "admin"
+                  ? `/admin/cataloging/${id}`
+                  : `/staff/cataloging/${id}`
+              );
+            }}
+          >
+            <i className="bi bi-arrow-left"></i>
+          </span>
+          Accession Record
+        </h1>
+        <table className="custom-table">
           <tbody>
             <tr>
-              <th className="text-left pr-4 font-semibold">Accession No.</th>
-              <td className="pl-4 border-l">
+              <th className="text-left font-semibold">Accession No.</th>
+              <td className="border-l">
                 {copy.accession_number || "N/A"}
               </td>
             </tr>
             <tr>
-              <th className="text-left pr-4 font-semibold">Date Acquired</th>
-              <td className="pl-4 border-l">
+              <th className="text-leftfont-semibold">Date Acquired</th>
+              <td className="border-l">
                 {copy.date_added ? copy.date_added.split("T")[0] : "N/A"}
               </td>
             </tr>
             <tr>
-              <th className="text-left pr-4 font-semibold">Material Type</th>
-              <td className="pl-4 border-l">{copy.material_type || "N/A"}</td>
+              <th className="text-left font-semibold">Material Type</th>
+              <td className="border-l">{copy.material_type || "N/A"}</td>
             </tr>
             <tr>
-              <th className="text-left pr-4 font-semibold">
+              <th className="text-left font-semibold">
                 Source of Acquisition
               </th>
-              <td className="pl-4 border-l">{copy.source || "N/A"}</td>
+              <td className="border-l">{copy.source || "N/A"}</td>
             </tr>
             <tr>
-              <th className="text-left pr-4 font-semibold">Funding Source</th>
-              <td className="pl-4 border-l">{copy.source_person || "N/A"}</td>
+              <th className="text-left font-semibold">Funding Source</th>
+              <td className="border-l">{copy.source_person || "N/A"}</td>
             </tr>
             <tr>
-              <th className="text-left pr-4 font-semibold">Catalog Note</th>
-              <td className="pl-4 border-l">{copy.cataloging_note || "N/A"}</td>
+              <th className="text-left font-semibold">Catalog Note</th>
+              <td className="border-l">{copy.cataloging_note || "N/A"}</td>
             </tr>
           </tbody>
         </table>

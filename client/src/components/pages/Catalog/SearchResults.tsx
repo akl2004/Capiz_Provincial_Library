@@ -12,9 +12,14 @@ interface Book {
   year?: string | number;
   classification?: string;
   cover_image?: string | null;
-  material_type?: string;
+  // material_type?: string;
   topical_subject?: string[];
   section?: string;
+  copies: BookCopy[];
+}
+
+interface BookCopy {
+  material_type?: string;
 }
 
 const deweyMap: { [key: string]: string } = {
@@ -46,6 +51,7 @@ const SearchResults = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"image" | "list">("image");
+  const [hasTyped, setHasTyped] = useState(false);
 
   // Get query from URL
   const params = new URLSearchParams(location.search);
@@ -76,13 +82,14 @@ const SearchResults = () => {
           year: book.copyright || "N/A",
           classification: getDeweyCategory(book.dewey_decimal),
           cover_image: book.cover_image || null,
-          material_type: book.material_type || "N/A",
+          // material_type: book.material_type || "N/A",
           topical_subject: Array.isArray(book.topical_subject)
             ? book.topical_subject
             : book.topical_subject
             ? [book.topical_subject]
             : [],
           section: book.section || "N/A",
+          copies: book.copies || [],
         }));
 
         setFilteredBooks(formattedBooks);
@@ -106,7 +113,7 @@ const SearchResults = () => {
 
   // Dropdown search suggestions
   useEffect(() => {
-    if (searchTerm.trim() === "") {
+    if (!hasTyped || searchTerm.trim() === "") {
       setShowDropdown(false);
       return;
     }
@@ -123,7 +130,7 @@ const SearchResults = () => {
             year: book.copyright || "N/A",
             classification: getDeweyCategory(book.dewey_decimal),
             cover_image: book.cover_image || null,
-            material_type: book.material_type || "N/A",
+            // material_type: book.material_type || "N/A",
             topical_subject: Array.isArray(book.topical_subject)
               ? book.topical_subject
               : book.topical_subject
@@ -131,6 +138,7 @@ const SearchResults = () => {
               : [],
 
             section: book.section || "N/A",
+            copies: book.copies || [],
           }));
 
           setFilteredBooks(formattedBooks);
@@ -166,9 +174,13 @@ const SearchResults = () => {
               className="form-control ps-5 pe-3"
               placeholder="Search Book..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setHasTyped(true);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && searchTerm.trim() !== "") {
+                  setShowDropdown(false); // ✅ Hide dropdown
                   navigate(
                     `/guest/guestdashboard/search?query=${encodeURIComponent(
                       searchTerm
@@ -261,8 +273,12 @@ const SearchResults = () => {
                 </div>
                 <div className="description col-md-9">
                   <p className="mb-0">
-                    <strong>Material:</strong> {book.material_type}
+                    <strong>Material:</strong>{" "}
+                    {book.copies?.length
+                      ? book.copies[0].material_type || "N/A"
+                      : "N/A"}
                   </p>
+
                   <p className="mb-0">
                     <strong>Title:</strong> {book.title}
                   </p>
@@ -309,7 +325,11 @@ const SearchResults = () => {
             <tbody>
               {filteredBooks.map((book) => (
                 <tr key={book.id}>
-                  <td>{book.material_type}</td>
+                  <td>
+                    {book.copies?.length
+                      ? book.copies[0].material_type || "N/A"
+                      : "N/A"}
+                  </td>
                   <td>{book.title}</td>
                   <td>{book.contributor}</td>
                   <td>{book.edition}</td>

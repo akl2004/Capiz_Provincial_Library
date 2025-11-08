@@ -136,7 +136,7 @@ const BookDetails: React.FC = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <button
+      {/* <button
         onClick={() => {
           const role = localStorage.getItem("role")?.toLowerCase();
           navigate(
@@ -146,12 +146,26 @@ const BookDetails: React.FC = () => {
         className="py-2 px-4 mb-4 bg-gray-200 hover:bg-gray-300 rounded"
       >
         ← Back
-      </button>
+      </button> */}
       {/* Bibliographical Record */}
       <div className="bibliographical-record">
         {/* Bibliographical Info */}
         <div className="bibliographical-info">
-          <h1 className="text-xl font-semibold mb-4">Bibliographical Record</h1>
+          <h1 className="text-xl font-semibold mb-4">
+            <span
+              className="me-2"
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                const role = localStorage.getItem("role")?.toLowerCase();
+                navigate(
+                  role === "admin" ? "/admin/cataloging" : "/staff/cataloging"
+                );
+              }}
+            >
+              <i className="bi bi-arrow-left"></i>
+            </span>
+            Bibliographical Record
+          </h1>
           <p>
             <strong>Title:</strong> {book.title || "N/A"}
           </p>
@@ -203,11 +217,11 @@ const BookDetails: React.FC = () => {
           <table>
             <thead>
               <tr>
-                <th>Copy Number</th>
+                <th></th>
                 <th>Barcode</th>
                 <th>Accession Number</th>
                 <th>Status</th>
-                <th>Internal Note</th>
+                <th>Notes</th>
               </tr>
             </thead>
             <tbody>

@@ -12,7 +12,7 @@ use App\Http\Controllers\DropdownController;
 use App\Http\Controllers\LibrarySettingController;
 use App\Http\Controllers\PatronController;
 use App\Http\Controllers\ReportsController;
-use App\Http\Controllers\StaffController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 
@@ -23,14 +23,24 @@ Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanc
 // Fetch the logged-in user
 Route::middleware('auth:sanctum')->get('/user', [AuthController::class, 'user']);
 
-// Staff/Accounts routes (protected with sanctum)
-Route::middleware('auth:sanctum')->prefix('staff')->group(function () {
-    Route::get('/', [StaffController::class, 'index']);       // List all staff
-    Route::post('/', [StaffController::class, 'store']);      // Add new staff
-    Route::put('/{id}', [StaffController::class, 'update']); // Update staff
-    Route::delete('/{id}', [StaffController::class, 'destroy']); // Delete staff
-    Route::get('/{id}', [StaffController::class, 'show']); // Get single staff
+// Users routes (protected with sanctum)
+Route::middleware('auth:sanctum')->prefix('users')->group(function () {
+    Route::get('/', [UserController::class, 'index']);       // List all users
+    Route::post('/', [UserController::class, 'store']);      // Add new user
+    Route::put('/{id}', [UserController::class, 'update']); // Update user
+    Route::get('/{id}', [UserController::class, 'show']);    // Get single user
+    Route::post('/{id}/reset-password', [UserController::class, 'resetPassword']); // Reset password
+    Route::post('/{id}/validate-password', [UserController::class, 'validatePassword']);  // validate password
+    Route::patch('/{id}/deactivate', [UserController::class, 'deactivate']);
+    Route::patch('/{id}/activate', [UserController::class, 'activate']);
+    Route::put('/{id}/promote', [UserController::class, 'promote']); // promoting staff to admin
 });
+
+Route::get('/user-counts', [UserController::class, 'getUserCounts'])->middleware('auth:sanctum');
+
+
+
+
 
 
 // Dropdown options
@@ -68,6 +78,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/patrons/generate-id', [PatronController::class, 'generatePatronId']);
     Route::get('/patrons/{id}/stats', [PatronController::class, 'stats']);
     Route::patch('/patrons/{id}/deactivate', [PatronController::class, 'deactivate']);
+    Route::patch('/patrons/{id}/block', [PatronController::class, 'block']);
+    Route::patch('/patrons/{id}/activate', [PatronController::class, 'activate']);
     
     Route::get('/patrons', [PatronController::class, 'index']);
     Route::post('/patrons', [PatronController::class, 'store']);
@@ -77,6 +89,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 Route::get('/patrons/by-id/{patronId}', [PatronController::class, 'getByPatronId']);
+Route::middleware('auth:sanctum')->put('/patrons/{id}/edit', [PatronController::class, 'updateEditableFields']);
 
 
 
@@ -107,6 +120,7 @@ Route::post('/attendances/{id}/timeout', [AttendanceController::class, 'timeOut'
 Route::get('/attendances/today', [AttendanceController::class, 'today']); // daily attendance
 Route::get('/attendances/patrons-this-week', [AttendanceController::class, 'patronsThisWeek']);  // for patron dashboard
 Route::get('/attendances/today-tally', [AttendanceController::class, 'todayTallyWithPercentage']);  
+Route::get('/attendance/tally', [AttendanceController::class, 'tallyCounts']);  // tally counts for the attendance
 
 Route::get('/patrons/{id}/activity-logs', [AttendanceController::class, 'patronLogs']);
 
@@ -131,7 +145,7 @@ Route::post('/settings/timezone', [LibrarySettingController::class, 'updateTimez
 
 //Activity Logs
 Route::get('/activity-logs', [ActivityLogController::class, 'index']);
-Route::get('/staff/{id}/activity-logs', [ActivityLogController::class, 'getStaffLogs']); // ✅ for individual staff
+Route::get('/users/{id}/activity-logs', [ActivityLogController::class, 'getUserLogs']); // ✅ for individual user
 Route::post('/activity-logs', [ActivityLogController::class, 'store']);
 
 
@@ -139,4 +153,7 @@ Route::post('/activity-logs', [ActivityLogController::class, 'store']);
 Route::get('/reports/collection', [ReportsController::class, 'collection']);
 Route::get('/reports/collection-masterlist', [ReportsController::class, 'collectionMasterlist']);
 Route::get('/reports/circulation', [ReportsController::class, 'circulation']);
+Route::get('/reports/attendance/summary', [ReportsController::class, 'attendanceSummary']);
+Route::get('/reports/attendance/log', [ReportsController::class, 'attendanceLog']);
+Route::get('/reports/accounts', [ReportsController::class, 'accounts']);
 

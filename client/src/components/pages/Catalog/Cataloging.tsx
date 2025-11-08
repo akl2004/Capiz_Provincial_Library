@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import AxiosInstance from "../../../AxiosInstance";
 import { useNavigate } from "react-router-dom";
 import LoadingSpinner from "../../../components/LoadingSpinner";
@@ -11,7 +11,7 @@ interface Book {
   year: string | number;
   classification: string;
   cover_image?: string;
-  subjects?: string[];
+  topical_subjects?: string[];
   section?: string;
   copies?: BookCopy[];
 }
@@ -29,19 +29,39 @@ const Cataloging = () => {
   const [filteredBooks, setFilteredBooks] = useState<Book[]>([]);
   const [viewMode, setViewMode] = useState<"image" | "list">("image");
 
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [sortField, setSortField] = useState<
+    "title" | "contributor" | "year" | null
+  >(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+
+  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [activeFilterSection, setActiveFilterSection] = useState<
+    "section" | "classification" | "material" | null
+  >(null);
+  const [sectionFilter, setSectionFilter] = useState<string | null>(null);
+  const [classificationFilter, setClassificationFilter] = useState<
+    string | null
+  >(null);
+  const [materialFilter, setMaterialFilter] = useState<string | null>(null);
+
+  // Refs for closing dropdowns on outside click
+  const sortRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const booksPerPage = 10;
 
   const deweyMap: { [key: string]: string } = {
     "000": "General Works",
-    "100": "Philosophy & Psychology",
+    "100": "Philosophy",
     "200": "Religion",
     "300": "Social Sciences",
     "400": "Language",
     "500": "Science",
     "600": "Technology",
-    "700": "Arts & Recreation",
+    "700": "Arts",
     "800": "Literature",
     "900": "History & Geography",
   };
@@ -58,38 +78,105 @@ const Cataloging = () => {
   }, []);
 
   useEffect(() => {
-    if (!searchTerm) {
-      setFilteredBooks(books);
-      return;
+    let updatedBooks = [...books];
+
+    // Search
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      updatedBooks = updatedBooks.filter((book) => {
+        const title = book.title?.toLowerCase() || "";
+        const contributor = book.contributor?.toLowerCase() || "";
+        const edition = book.edition?.toLowerCase() || "";
+        const year = book.year?.toString() || "";
+        const classification = book.classification?.toLowerCase() || "";
+        const material_type =
+          book.copies?.map((c) => c.material_type.toLowerCase()).join(", ") ||
+          "";
+        const subjects = book.topical_subjects?.join(", ").toLowerCase() || "";
+        const section = book.section?.toLowerCase() || "";
+
+        return (
+          title.includes(lowerSearch) ||
+          contributor.includes(lowerSearch) ||
+          edition.includes(lowerSearch) ||
+          year.includes(lowerSearch) ||
+          classification.includes(lowerSearch) ||
+          material_type.includes(lowerSearch) ||
+          subjects.includes(lowerSearch) ||
+          section.includes(lowerSearch)
+        );
+      });
     }
 
-    const lowerSearch = searchTerm.toLowerCase();
-    const filtered = books.filter((book) => {
-      const title = book.title?.toLowerCase() || "";
-      const contributor = book.contributor?.toLowerCase() || "";
-      const edition = book.edition?.toLowerCase() || "";
-      const year = book.year?.toString() || "";
-      const classification = book.classification?.toLowerCase() || "";
-      const material_type =
-        book.copies?.map((c) => c.material_type.toLowerCase()).join(", ") || "";
-      const subjects = book.subjects?.join(", ").toLowerCase() || "";
-      const section = book.section?.toLowerCase() || "";
-
-      return (
-        title.includes(lowerSearch) ||
-        contributor.includes(lowerSearch) ||
-        edition.includes(lowerSearch) ||
-        year.includes(lowerSearch) ||
-        classification.includes(lowerSearch) ||
-        material_type.includes(lowerSearch) ||
-        subjects.includes(lowerSearch) ||
-        section.includes(lowerSearch)
+    // Filters
+    if (sectionFilter) {
+      updatedBooks = updatedBooks.filter(
+        (book) => book.section === sectionFilter
       );
-    });
+    }
+    if (classificationFilter) {
+      updatedBooks = updatedBooks.filter(
+        (book) => book.classification === classificationFilter
+      );
+    }
+    if (materialFilter) {
+      updatedBooks = updatedBooks.filter((book) =>
+        book.copies?.some((c) => c.material_type === materialFilter)
+      );
+    }
 
-    setFilteredBooks(filtered);
+    // Sorting
+    if (sortField) {
+      updatedBooks.sort((a, b) => {
+        let aVal: any = a[sortField];
+        let bVal: any = b[sortField];
+
+        // Convert year to number for proper sorting
+        if (sortField === "year") {
+          aVal = Number(aVal) || 0;
+          bVal = Number(bVal) || 0;
+        } else {
+          aVal = aVal?.toString().toLowerCase() || "";
+          bVal = bVal?.toString().toLowerCase() || "";
+        }
+
+        if (aVal < bVal) return sortOrder === "asc" ? -1 : 1;
+        if (aVal > bVal) return sortOrder === "asc" ? 1 : -1;
+        return 0;
+      });
+    }
+
+    setFilteredBooks(updatedBooks);
     setCurrentPage(1);
-  }, [searchTerm, books]);
+  }, [
+    searchTerm,
+    books,
+    sectionFilter,
+    classificationFilter,
+    materialFilter,
+    sortField,
+    sortOrder,
+  ]);
+
+  // Close menus on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      // Close sort menu if clicked outside
+      if (sortRef.current && !sortRef.current.contains(event.target as Node)) {
+        setSortMenuOpen(false);
+      }
+      // Close filter menu if clicked outside
+      if (
+        filterRef.current &&
+        !filterRef.current.contains(event.target as Node)
+      ) {
+        setFilterMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const fetchBooks = async () => {
     try {
@@ -102,17 +189,24 @@ const Cataloging = () => {
 
       const formattedBooks = booksData.map((book: any) => {
         let subjects: string[] = [];
+
         if (book.topical_subject) {
           if (Array.isArray(book.topical_subject)) {
             subjects = book.topical_subject;
           } else if (typeof book.topical_subject === "string") {
             try {
-              subjects = JSON.parse(book.topical_subject);
+              const parsed = JSON.parse(book.topical_subject);
+              subjects = Array.isArray(parsed)
+                ? parsed
+                : [book.topical_subject];
             } catch {
               subjects = [book.topical_subject];
             }
           }
         }
+
+        // Filter out empty strings or whitespace
+        subjects = subjects.filter((s) => s && s.trim() !== "");
 
         return {
           id: book.id,
@@ -125,18 +219,19 @@ const Cataloging = () => {
           year: book.copyright || "N/A",
           classification: getDeweyCategory(book.dewey_decimal),
           cover_image: book.cover_image || "",
-          subjects,
+          topical_subjects: subjects, // <-- now normalized correctly
           section: book.section || "N/A",
           copies: book.copies || [],
         };
       });
 
       // Sort newest first by id
-      const sortedBooks = formattedBooks.sort((a: Book, b: Book) => b.id - a.id);
+      const sortedBooks = formattedBooks.sort(
+        (a: Book, b: Book) => b.id - a.id
+      );
 
       setBooks(sortedBooks);
       setFilteredBooks(sortedBooks);
-
     } catch (error) {
       console.error("Error fetching books:", error);
     } finally {
@@ -165,19 +260,234 @@ const Cataloging = () => {
         </div>
 
         <div className="d-flex gap-2 align-items-center">
-          <div className="position-relative" style={{ maxWidth: "300px" }}>
-            <span
-              className="position-absolute top-50 translate-middle-y ps-2"
-              style={{ left: "10px", color: "#6c757d" }}
-            >
-              <i className="bi bi-search"></i>
-            </span>
-            <input
-              className="form-control ps-5 pe-3"
-              placeholder="SEARCH BOOK"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="d-flex gap-2 align-items-center">
+            {/* Search */}
+            <div className="position-relative" style={{ maxWidth: "300px" }}>
+              <span
+                className="position-absolute top-50 translate-middle-y ps-2"
+                style={{ left: "10px", color: "#6c757d" }}
+              >
+                <i className="bi bi-search"></i>
+              </span>
+              <input
+                className="form-control ps-5 pe-5"
+                placeholder="Search book"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Sort Controls */}
+            <div className="position-relative" ref={sortRef}>
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortMenuOpen(!sortMenuOpen);
+                }}
+              >
+                <i className="bi bi-sort-alpha-down me-2"></i> Sort
+              </button>
+
+              {sortMenuOpen && (
+                <div
+                  className="sort-dropdown"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="sort-fields">
+                    {[
+                      { field: "title", label: "Title" },
+                      { field: "contributor", label: "Contributor" },
+                      { field: "year", label: "Year" },
+                    ].map(({ field, label }) => (
+                      <div
+                        key={field}
+                        className="sort-field"
+                        onClick={() =>
+                          setSortField(
+                            sortField === field ? null : (field as any)
+                          )
+                        }
+                      >
+                        {sortField === field && (
+                          <span className="selected-dot"></span>
+                        )}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="sort-order">
+                    <button
+                      className={`sort-btn ${
+                        sortField && sortOrder === "asc" ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        if (!sortField) return;
+                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                      }}
+                    >
+                      ASC
+                    </button>
+                    <button
+                      className={`sort-btn ${
+                        sortField && sortOrder === "desc" ? "active" : ""
+                      }`}
+                      onClick={() => {
+                        if (!sortField) return;
+                        setSortOrder(sortOrder === "desc" ? "asc" : "desc");
+                      }}
+                    >
+                      DESC
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Filter Controls */}
+            <div className="position-relative" ref={filterRef}>
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFilterMenuOpen(!filterMenuOpen);
+                }}
+              >
+                <i className="bi bi-sliders me-2"></i> Filter
+              </button>
+
+              {filterMenuOpen && (
+                <div
+                  className="filter-dropdown"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Section Filter */}
+                  <div
+                    className={`filter-section-header ${
+                      activeFilterSection === "section" ? "active" : ""
+                    }`}
+                    onClick={() =>
+                      setActiveFilterSection(
+                        activeFilterSection === "section" ? null : "section"
+                      )
+                    }
+                  >
+                    Section{" "}
+                    <i
+                      className={`bi ${
+                        activeFilterSection === "section"
+                          ? "bi-chevron-down"
+                          : "bi-chevron-right"
+                      } ms-2`}
+                    ></i>
+                  </div>
+                  {activeFilterSection === "section" &&
+                    ["Filipiniana", "Gen. Reference", "Gen. Circulation"].map(
+                      (section) => (
+                        <div
+                          key={section}
+                          className={`filter-item ${
+                            sectionFilter === section ? "active" : ""
+                          }`}
+                          onClick={() =>
+                            setSectionFilter(
+                              sectionFilter === section ? null : section
+                            )
+                          }
+                        >
+                          {section}
+                        </div>
+                      )
+                    )}
+
+                  {/* Classification Filter */}
+                  <div
+                    className={`filter-section-header ${
+                      activeFilterSection === "classification" ? "active" : ""
+                    }`}
+                    onClick={() =>
+                      setActiveFilterSection(
+                        activeFilterSection === "classification"
+                          ? null
+                          : "classification"
+                      )
+                    }
+                  >
+                    Classification{" "}
+                    <i
+                      className={`bi ${
+                        activeFilterSection === "classification"
+                          ? "bi-chevron-down"
+                          : "bi-chevron-right"
+                      } ms-2`}
+                    ></i>
+                  </div>
+                  {activeFilterSection === "classification" &&
+                    [
+                      "General Works",
+                      "Philosophy",
+                      "Religion",
+                      "Social Sciences",
+                      "Language",
+                      "Science",
+                      "Technology",
+                      "Arts",
+                      "Literature",
+                      "History & Geography",
+                    ].map((cls) => (
+                      <div
+                        key={cls}
+                        className={`filter-item ${
+                          classificationFilter === cls ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          setClassificationFilter(
+                            classificationFilter === cls ? null : cls
+                          )
+                        }
+                      >
+                        {cls}
+                      </div>
+                    ))}
+
+                  {/* Material Type Filter */}
+                  <div
+                    className={`filter-section-header ${
+                      activeFilterSection === "material" ? "active" : ""
+                    }`}
+                    onClick={() =>
+                      setActiveFilterSection(
+                        activeFilterSection === "material" ? null : "material"
+                      )
+                    }
+                  >
+                    Material Type{" "}
+                    <i
+                      className={`bi ${
+                        activeFilterSection === "material"
+                          ? "bi-chevron-down"
+                          : "bi-chevron-right"
+                      } ms-2`}
+                    ></i>
+                  </div>
+                  {activeFilterSection === "material" &&
+                    ["Book", "Journal", "Magazine", "E-Book"].map((mat) => (
+                      <div
+                        key={mat}
+                        className={`filter-item ${
+                          materialFilter === mat ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          setMaterialFilter(materialFilter === mat ? null : mat)
+                        }
+                      >
+                        {mat}
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="btn-group" role="group">
@@ -272,7 +582,7 @@ const Cataloging = () => {
                       <strong>Title:</strong> {book.title}
                     </p>
                     <p className="mb-0">
-                      <strong>Author:</strong> {book.contributor}
+                      <strong>Contributor:</strong> {book.contributor}
                     </p>
                     <p className="mb-0">
                       <strong>Edition:</strong> {book.edition}
@@ -282,7 +592,9 @@ const Cataloging = () => {
                     </p>
                     <p className="mb-0">
                       <strong>Subjects:</strong>{" "}
-                      {book.subjects?.length ? book.subjects.join(", ") : "N/A"}
+                      {book.topical_subjects?.length
+                        ? book.topical_subjects.join(", ")
+                        : "N/A"}
                     </p>
                     <p className="mb-0">
                       <strong>Section:</strong> {book.section}
@@ -344,7 +656,9 @@ const Cataloging = () => {
                     <td>{book.edition}</td>
                     <td>{book.year}</td>
                     <td>
-                      {book.subjects?.length ? book.subjects.join(", ") : "N/A"}
+                      {book.topical_subjects?.length
+                        ? book.topical_subjects.join(", ")
+                        : "N/A"}
                     </td>
                     <td>{book.section}</td>
                     <td>{book.classification}</td>

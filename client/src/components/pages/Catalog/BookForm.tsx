@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AxiosInstance from "../../../AxiosInstance";
 import Barcode from "react-barcode";
 import { useNavigate } from "react-router-dom";
+import Alert from "../../Alert";
 
 interface Copy {
   copy_number: number;
@@ -15,6 +16,12 @@ interface Copy {
 
 const BookForm: React.FC = () => {
   // ===== Catalog Record =====
+  const [loading, setLoading] = useState(false);
+
+  // Alert state
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertType, setAlertType] = useState<"success" | "error">("success");
+
   const [personSubject, setPersonSubject] = useState("");
   const [geographicalSubject, setGeographicalSubject] = useState("");
   const [author, setAuthor] = useState("");
@@ -116,14 +123,17 @@ const BookForm: React.FC = () => {
     setBookCopies(generatedCopies);
   }, [copies]);
 
-
+  // Form submission
   // Form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true); // start loading
+    setAlertMessage(""); // clear previous alerts
 
     const formData = new FormData();
     formData.append("person_as_subject", personSubject);
-    // Only non-empty subjects
+
+    // Only non-empty topical subjects
     const filteredSubjects = topicalSubjects.filter((s) => s.trim() !== "");
     filteredSubjects.forEach((subject) => {
       formData.append("topical_subject[]", subject);
@@ -164,7 +174,7 @@ const BookForm: React.FC = () => {
     formData.append("material_type", materialType);
     if (coverImage) formData.append("cover_image", coverImage);
 
-    // Append each copy (optional, you can remove if backend auto-generates)
+    // Append each copy (optional)
     bookCopies.forEach((c, i) => {
       formData.append(
         `copies_data[${i}][copy_number]`,
@@ -177,27 +187,34 @@ const BookForm: React.FC = () => {
       const res = await AxiosInstance.post("/books", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      alert("✅ Book saved successfully!");
+
+      // Show success alert
+      setAlertMessage("Book saved successfully!");
+      setAlertType("success");
+
+      // Show barcode modal and update copies
       setShowBarcodeModal(true);
       setBookCopies(res.data.book?.copies || bookCopies);
     } catch (error: any) {
       console.error(
-        "❌ Error saving book:",
+        "Error saving book:",
         error.response?.data || error.message
       );
-      alert("Failed to save book.");
+
+      // Show error alert
+      setAlertMessage("Failed to save book. Please try again.");
+      setAlertType("error");
+    } finally {
+      setLoading(false); // stop loading
     }
   };
 
   return (
     <>
       <form onSubmit={handleSubmit} className="book-form">
-        <h1>📚 Add New Book</h1>
-
         {/* ===== Catalog Record ===== */}
         <fieldset>
-          <legend className="record">Catalog Record</legend>
-
+          <legend className="record text-white">CATALOG RECORD</legend>
           {/* Identifiers */}
           <fieldset>
             <legend>Identifiers</legend>
@@ -206,6 +223,7 @@ const BookForm: React.FC = () => {
               <div className="flex-col" style={{ flex: 1, gap: "10px" }}>
                 <div className="flex-row">
                   <label>ISBN</label>
+                  <span className="catalog_number">(020)</span>
                   <input
                     type="text"
                     value={isbn}
@@ -214,6 +232,7 @@ const BookForm: React.FC = () => {
                 </div>
                 <div className="flex-row">
                   <label>Dewey Decimal</label>
+                  <span className="catalog_number">(082)</span>
                   <input
                     type="text"
                     value={deweyDecimal}
@@ -222,6 +241,7 @@ const BookForm: React.FC = () => {
                 </div>
                 <div className="flex-row">
                   <label>Author Number</label>
+                  <span className="catalog_number">(949)</span>
                   <input
                     type="text"
                     value={authorNumber}
@@ -281,6 +301,7 @@ const BookForm: React.FC = () => {
             <div className="flex-col" style={{ gap: "10px" }}>
               <div className="flex-row">
                 <label>Title</label>
+                <span className="catalog_number">(245)</span>
                 <input
                   type="text"
                   value={title}
@@ -290,6 +311,7 @@ const BookForm: React.FC = () => {
 
               <div className="flex-row">
                 <label>Edition</label>
+                <span className="catalog_number">(250)</span>
                 <input
                   type="text"
                   className="small"
@@ -301,6 +323,7 @@ const BookForm: React.FC = () => {
               {/* Publication Row */}
               <div className="flex-row">
                 <label>Publication</label>
+                <span className="catalog_number">(264)</span>
                 <div className="flex-col flex-grow">
                   <input
                     type="text"
@@ -344,6 +367,7 @@ const BookForm: React.FC = () => {
                   style={{ gap: "10px", marginTop: "10px" }}
                 >
                   <label>Series</label> {/* single main label for the row */}
+                  <span className="catalog_number">(400)</span>
                   <div className="flex-col flex-grow">
                     <input
                       type="text"
@@ -369,6 +393,7 @@ const BookForm: React.FC = () => {
 
                 <div className="flex-row">
                   <label>Language Code</label>
+                  <span className="catalog_number">(041)</span>
                   <input
                     type="text"
                     value={languageCode}
@@ -378,6 +403,7 @@ const BookForm: React.FC = () => {
 
                 <div className="flex-row">
                   <label>Number of Pages</label>
+                  <span className="catalog_number">(300)</span>
                   <input
                     type="number"
                     className="small"
@@ -440,6 +466,7 @@ const BookForm: React.FC = () => {
             <div className="flex-col">
               <div className="flex-row">
                 <label>Person as Subject</label>
+                <span className="catalog_number">(600)</span>
                 <input
                   type="text"
                   value={personSubject}
@@ -454,6 +481,8 @@ const BookForm: React.FC = () => {
                   ) : (
                     <div style={{ width: "120px" }} />
                   )}
+
+                  <span className="catalog_number">(650)</span>
                   <input
                     type="text"
                     value={subject}
@@ -472,6 +501,7 @@ const BookForm: React.FC = () => {
 
               <div className="flex-row">
                 <label>Geographical Subject</label>
+                <span className="catalog_number">(651)</span>
                 <input
                   type="text"
                   value={geographicalSubject}
@@ -489,6 +519,7 @@ const BookForm: React.FC = () => {
             <div className="flex-col">
               <div className="flex-row">
                 <label>Author</label>
+                <span className="catalog_number">(100)</span>
                 <input
                   type="text"
                   value={author}
@@ -498,6 +529,7 @@ const BookForm: React.FC = () => {
 
               <div className="flex-row">
                 <label>Editor</label>
+                <span className="catalog_number">(700)</span>
                 <input
                   type="text"
                   value={editor}
@@ -512,6 +544,7 @@ const BookForm: React.FC = () => {
                   ) : (
                     <div style={{ width: "120px" }} />
                   )}
+                  <span className="catalog_number">(700)</span>
                   <input
                     type="text"
                     value={person}
@@ -537,12 +570,13 @@ const BookForm: React.FC = () => {
 
         {/* ===== Accession Record ===== */}
         <fieldset>
-          <legend className="record">Accession Record</legend>
+          <legend className="record text-white mb-4">ACCESSION RECORD</legend>
 
           {/* Row 1: Section and Material Type */}
           <div className="flex-row" style={{ gap: "20px" }}>
             <div className="flex-row flex-grow">
               <label>Section</label>
+              <span className="catalog_number">(245)</span>
               <select
                 value={section}
                 onChange={(e) => setSection(e.target.value)}
@@ -557,6 +591,7 @@ const BookForm: React.FC = () => {
 
             <div className="flex-row flex-grow">
               <label>Material Type</label>
+              <span className="catalog_number">(245)</span>
               <select
                 value={materialType}
                 onChange={(e) => setMaterialType(e.target.value)}
@@ -574,6 +609,7 @@ const BookForm: React.FC = () => {
           <div className="flex-row" style={{ gap: "20px" }}>
             <div className="flex-row flex-grow">
               <label>Source of Acquisition</label>
+              <span className="catalog_number">(245)</span>
               <select
                 value={source}
                 onChange={(e) => setSource(e.target.value)}
@@ -588,6 +624,7 @@ const BookForm: React.FC = () => {
 
             <div className="flex-row flex-grow">
               <label>Number of Copies</label>
+              <span className="catalog_number">(245)</span>
               <input
                 type="number"
                 min={1}
@@ -606,6 +643,7 @@ const BookForm: React.FC = () => {
             >
               <div className="flex-row flex-grow">
                 <label>Copy Number</label>
+                <span className="catalog_number">(245)</span>
                 <input
                   type="text"
                   value={c.copy_number}
@@ -615,6 +653,7 @@ const BookForm: React.FC = () => {
               </div>
               <div className="flex-row flex-grow">
                 <label>Barcode</label>
+                <span className="catalog_number">(245)</span>
                 <input
                   type="text"
                   value={c.barcode}
@@ -628,6 +667,7 @@ const BookForm: React.FC = () => {
           {/* Row 4: Barcode */}
           <div className="flex-row flex-grow">
             <label>Funding Source</label>
+            <span className="catalog_number">(245)</span>
             <input
               type="text"
               value={sourcePerson}
@@ -638,6 +678,7 @@ const BookForm: React.FC = () => {
           {/* Row 5: Cataloging Note */}
           <div className="flex-row flex-grow">
             <label>Cataloging Note</label>
+            <span className="catalog_number">(910)</span>
             <textarea
               value={catalogingNote}
               onChange={(e) => setCatalogingNote(e.target.value)}
@@ -647,6 +688,7 @@ const BookForm: React.FC = () => {
           {/* Row 6: Internal Note */}
           <div className="flex-row flex-grow">
             <label>Internal Note</label>
+            <span className="catalog_number">(245)</span>
             <textarea
               value={internalNote}
               onChange={(e) => setInternalNote(e.target.value)}
@@ -654,9 +696,19 @@ const BookForm: React.FC = () => {
           </div>
         </fieldset>
 
+        {/* Alert component */}
+        {alertMessage && (
+          <Alert
+            message={alertMessage}
+            type={alertType}
+            onClose={() => setAlertMessage("")}
+          />
+        )}
+
         <div className="form-actions">
           <button type="submit" className="submit-btn">
-            Save Book
+            {loading && <span className="spinner-tiny"></span>}
+            {loading ? "Saving..." : "Save Book"}
           </button>
           <button
             type="button"

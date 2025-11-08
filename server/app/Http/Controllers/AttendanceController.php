@@ -59,7 +59,28 @@ class AttendanceController extends Controller
     // List all attendance records
     public function index()
     {
-        return Attendance::orderBy('created_at', 'desc')->get();
+        $attendances = Attendance::orderBy('created_at', 'desc')->get()->map(function ($log) {
+            return [
+                'id' => $log->id,
+                'patron_id' => $log->patron_id,
+                'first_name' => $log->first_name,
+                'middle_name' => $log->middle_name,
+                'last_name' => $log->last_name,
+                'suffix' => $log->suffix,
+                'email' => $log->email,
+                'province' => $log->province,
+                'city' => $log->city,
+                'barangay' => $log->barangay,
+                'number' => $log->number,
+                'affiliation' => $log->affiliation,
+                'purpose_of_visit' => $log->purpose_of_visit,
+                'time_in' => $log->time_in,
+                'time_out' => $log->time_out,
+                'type' => $log->patron_id ? 'patron' : 'guest',
+            ];
+        });
+
+        return response()->json($attendances);
     }
 
     public function patronsThisWeek()
@@ -107,6 +128,22 @@ class AttendanceController extends Controller
         return response()->json([
             'attendanceToday' => $todayCount, // matches frontend
             'percent' => $percent,
+        ]);
+    }
+
+    public function tallyCounts()
+    {
+        $today = Carbon::today();
+
+        $visitorsToday = Attendance::whereDate('time_in', $today)->count();
+
+        $currentVisitors = Attendance::whereNull('time_out')
+            ->whereDate('time_in', $today)
+            ->count();
+
+        return response()->json([
+            'visitors_today' => $visitorsToday,
+            'current_visitors' => $currentVisitors,
         ]);
     }
 

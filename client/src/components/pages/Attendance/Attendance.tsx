@@ -4,6 +4,7 @@ import LoadingSpinner from "../../LoadingSpinner";
 
 interface Attendance {
   id: number;
+  type: "guest" | "patron";
   first_name: string;
   middle_name?: string;
   last_name: string;
@@ -22,20 +23,26 @@ interface Attendance {
 const Attendance = () => {
   const [attendances, setAttendances] = useState<Attendance[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [loading, setLoading] = useState(false); // <-- loading state
+  const [loading, setLoading] = useState(false);
+
+  // Sort dropdown state
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>(null);
+  const sortRef = useRef<HTMLDivElement | null>(null);
 
   // Filter dropdown state
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-
-  const [showStatusOptions, setShowStatusOptions] = useState(false);
-  const [statusValue, setStatusValue] = useState<"all" | "in" | "out">("all");
-
+  const [showVisitorTypeOptions, setShowVisitorTypeOptions] = useState(false);
+  const [visitorType, setVisitorType] = useState<"all" | "patron" | "guest">(
+    "all"
+  );
   const filterRef = useRef<HTMLDivElement>(null);
 
-  const [filterYear, setFilterYear] = useState<number | null>(null);
-  const [filterMonth, setFilterMonth] = useState<number | null>(null);
-  const [filterWeek, setFilterWeek] = useState<number | null>(null);
-  const [showDateOptions, setShowDateOptions] = useState(false);
+  const [tally, setTally] = useState({
+    visitors_today: 0,
+    current_visitors: 0,
+  });
 
   useEffect(() => {
     fetchAttendances();
@@ -52,46 +59,37 @@ const Attendance = () => {
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
+  
 
   const fetchAttendances = async () => {
-    setLoading(true); // start loading
+    setLoading(true);
     try {
       const res = await AxiosInstance.get("/attendances");
       setAttendances(res.data);
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false); // stop loading
+      setLoading(false);
     }
   };
 
-  // const handleTimeOut = async (id: number) => {
-  //   setLoading(true);
-  //   try {
-  //     await AxiosInstance.post(`/attendances/${id}/timeout`);
-  //     fetchAttendances();
-  //   } catch (err) {
-  //     console.error(err);
-  //     setLoading(false);
-  //   }
-  // };
+  useEffect(() => {
+    const fetchTally = async () => {
+      try {
+        const response = await AxiosInstance.get("/attendance/tally");
+        setTally(response.data);
+      } catch (error) {
+        console.error("Error fetching attendance tally:", error);
+      }
+    };
+    fetchTally();
 
-  const matchesDate = (att: Attendance) => {
-    if (!filterYear) return true;
+    const interval = setInterval(fetchTally, 60000);
+    return () => clearInterval(interval);
+  }, []);
 
-    const attDate = new Date(att.time_in || "");
-    const yearMatch = attDate.getFullYear() === filterYear;
-    const monthMatch =
-      filterMonth !== null ? attDate.getMonth() === filterMonth : true;
-    const weekMatch =
-      filterWeek !== null
-        ? Math.ceil(attDate.getDate() / 7) === filterWeek
-        : true;
 
-    return yearMatch && monthMatch && weekMatch;
-  };
-
-  // Then in filteredAttendances:
+  // filter attendances based on search, visitor type, and date
   const filteredAttendances = attendances.filter((att) => {
     const matchesSearch =
       `${att.first_name} ${att.middle_name || ""} ${att.last_name}`
@@ -103,20 +101,62 @@ const Attendance = () => {
         .includes(searchTerm.toLowerCase()) ||
       att.purpose_of_visit?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusValue === "all"
-        ? true
-        : statusValue === "in"
-        ? !att.time_out
-        : !!att.time_out;
+    const matchesType = visitorType === "all" ? true : att.type === visitorType;
 
-    return matchesSearch && matchesStatus && matchesDate(att);
+    return matchesSearch && matchesType;
   });
 
+  // Sort attendance by selected field + order
+  const sortedAttendances = [...filteredAttendances].sort((a, b) => {
+    if (!sortField || !sortOrder) return 0;
+
+    let valA: string | number = "";
+    let valB: string | number = "";
+
+    if (sortField === "name") {
+      valA = `${a.first_name} ${a.middle_name ?? ""} ${a.last_name} ${
+        a.suffix ?? ""
+      }`
+        .trim()
+        .toLowerCase();
+      valB = `${b.first_name} ${b.middle_name ?? ""} ${b.last_name} ${
+        b.suffix ?? ""
+      }`
+        .trim()
+        .toLowerCase();
+    } else if (sortField === "time_in") {
+      valA = a.time_in ? new Date(a.time_in).getTime() : 0;
+      valB = b.time_in ? new Date(b.time_in).getTime() : 0;
+    } else if (sortField === "time_out") {
+      valA = a.time_out ? new Date(a.time_out).getTime() : 0;
+      valB = b.time_out ? new Date(b.time_out).getTime() : 0;
+    }
+
+    if (valA < valB) return sortOrder === "asc" ? -1 : 1;
+    if (valA > valB) return sortOrder === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        sortRef.current &&
+        !sortRef.current.contains(e.target as Node) &&
+        filterRef.current &&
+        !filterRef.current.contains(e.target as Node)
+      ) {
+        setSortMenuOpen(false);
+        setFilterMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Export CSV
   const exportCSV = () => {
     const headers = [
+      "Visitor",
       "Name",
       "Email",
       "Address",
@@ -128,6 +168,7 @@ const Attendance = () => {
       "Status",
     ];
     const rows = filteredAttendances.map((att) => [
+      `"${att.type === "patron" ? "Patron" : "Guest"}"`,
       `"${att.first_name} ${att.middle_name || ""} ${att.last_name} ${
         att.suffix || ""
       }"`,
@@ -152,251 +193,250 @@ const Attendance = () => {
   };
 
   return (
-    <div className="attendance-container">
-      {/* Header */}
-      <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h1 className="text-xl font-semibold mb-0">Library Attendance</h1>
-        <div className="d-flex gap-2 align-items-center flex-wrap">
-          {/* Search */}
-          <div className="position-relative" style={{ maxWidth: "300px" }}>
-            <span
-              className="position-absolute top-50 translate-middle-y ps-2"
-              style={{ left: "10px", color: "#6c757d" }}
-            >
-              <i className="bi bi-search"></i>
+    <>
+      <div className="attendance-tally-container">
+        <div className="attendance-tally-card">
+          <div className="attendance-tally-count">{tally.visitors_today}</div>
+          <div className="attendance-tally-label">
+            <span className="attendance-tally-title">Visitors Today</span>
+            <span className="attendance-tally-subtitle">
+              Total number of guests and patrons who have timed in today.
             </span>
-            <input
-              className="form-control ps-5 pe-5"
-              placeholder="Search"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
           </div>
+        </div>
 
-          {/* Filter Dropdown */}
-          <div className="position-relative" ref={filterRef}>
-            <button
-              className="btn btn-outline-secondary d-flex align-items-center"
-              onClick={(e) => {
-                e.stopPropagation();
-                setFilterMenuOpen(!filterMenuOpen);
-              }}
-            >
-              <i className="bi bi-sliders me-2"></i> Filter
-            </button>
-
-            {filterMenuOpen && (
-              <div className="filter-dropdown p-2 bg-white border shadow-sm">
-                {/* Status Filter */}
-                <div
-                  className={`filter-section-header ${
-                    statusValue !== "all" ? "active" : ""
-                  }`}
-                  onClick={() => setShowStatusOptions(!showStatusOptions)}
-                >
-                  Status{" "}
-                  <i
-                    className={`bi ${
-                      showStatusOptions ? "bi-chevron-down" : "bi-chevron-right"
-                    } ms-2`}
-                  ></i>
-                </div>
-                {showStatusOptions && (
-                  <div className="d-flex flex-column">
-                    {["all", "in", "out"].map((opt) => (
-                      <div
-                        key={opt}
-                        className={`filter-item px-2 py-1 ${
-                          statusValue === opt
-                            ? "active bg-primary text-white"
-                            : "cursor-pointer"
-                        }`}
-                        onClick={() =>
-                          setStatusValue(opt as "all" | "in" | "out")
-                        }
-                      >
-                        {opt === "all"
-                          ? "All Status"
-                          : opt === "in"
-                          ? "Timed In"
-                          : "Timed Out"}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Date Filter */}
-                <div
-                  className={`filter-section-header ${
-                    filterYear || filterMonth !== null || filterWeek !== null
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={() => {
-                    if (showDateOptions) {
-                      setFilterYear(null);
-                      setFilterMonth(null);
-                      setFilterWeek(null);
-                    }
-                    setShowDateOptions(!showDateOptions);
-                  }}
-                >
-                  Date Added{" "}
-                  <i
-                    className={`bi ${
-                      showDateOptions ? "bi-chevron-down" : "bi-chevron-right"
-                    } ms-2`}
-                  ></i>
-                </div>
-
-                {showDateOptions && (
-                  <div
-                    className="filter-date-options d-flex"
-                    style={{ gap: "2px" }}
-                  >
-                    {/* Year */}
-                    <select
-                      value={filterYear ?? ""}
-                      onChange={(e) =>
-                        setFilterYear(e.target.value ? +e.target.value : null)
-                      }
-                      className="form-select form-select-sm"
-                    >
-                      <option value="">Year</option>
-                      {Array.from({ length: 10 }, (_, i) => {
-                        const year = new Date().getFullYear() - i;
-                        return (
-                          <option key={year} value={year}>
-                            {year}
-                          </option>
-                        );
-                      })}
-                    </select>
-
-                    {/* Month */}
-                    <select
-                      value={filterMonth ?? ""}
-                      onChange={(e) =>
-                        setFilterMonth(e.target.value ? +e.target.value : null)
-                      }
-                      className="form-select form-select-sm"
-                      disabled={!filterYear}
-                    >
-                      <option value="">Month</option>
-                      {Array.from({ length: 12 }, (_, i) => (
-                        <option key={i} value={i}>
-                          {new Date(0, i).toLocaleString("default", {
-                            month: "short",
-                          })}
-                        </option>
-                      ))}
-                    </select>
-
-                    {/* Week */}
-                    <select
-                      value={filterWeek ?? ""}
-                      onChange={(e) =>
-                        setFilterWeek(e.target.value ? +e.target.value : null)
-                      }
-                      className="form-select form-select-sm"
-                      disabled={!filterYear || !filterMonth}
-                    >
-                      <option value="">Week</option>
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <option key={i + 1} value={i + 1}>
-                          {i + 1}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            )}
+        <div className="attendance-tally-card">
+          <div className="attendance-tally-count">{tally.current_visitors}</div>
+          <div className="attendance-tally-label">
+            <span className="attendance-tally-title">
+              Current Visitors Inside
+            </span>
+            <span className="attendance-tally-subtitle">
+              Active count of visitors currently inside the library (not timed
+              out).
+            </span>
           </div>
-
-          <button className="btn btn-secondary" onClick={exportCSV}>
-            Export CSV
-          </button>
         </div>
       </div>
 
-      {/* Attendance Table */}
-      <div className="overflow-x-auto">
-        <table className="attendance-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Address</th>
-              <th>Number</th>
-              <th>Affiliation</th>
-              <th>Purpose</th>
-              <th>Time In</th>
-              <th>Time Out</th>
-              {/* <th>Status</th>
-              <th>Action</th> */}
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={10} className="text-center py-4">
-                  <LoadingSpinner />
-                </td>
-              </tr>
-            ) : filteredAttendances.length > 0 ? (
-              filteredAttendances.map((att) => (
-                <tr key={att.id}>
-                  <td>{`${att.first_name} ${att.middle_name || ""} ${
-                    att.last_name
-                  } ${att.suffix || ""}`}</td>
-                  <td>{att.email || "-"}</td>
-                  <td>{`${att.barangay || "-"}, ${att.city || "-"}, ${
-                    att.province || "-"
-                  }`}</td>
-                  <td>{att.number || "-"}</td>
-                  <td>{att.affiliation || "-"}</td>
-                  <td>{att.purpose_of_visit || "-"}</td>
-                  <td>
-                    {att.time_in ? new Date(att.time_in).toLocaleString() : "-"}
-                  </td>
-                  <td>
-                    {att.time_out
-                      ? new Date(att.time_out).toLocaleString()
-                      : "-"}
-                  </td>
-                  {/* <td>
-                    <span
-                      className={`status-badge ${
-                        att.time_out ? "status-out" : "status-in"
-                      }`}
-                    >
-                      {att.time_out ? "Timed Out" : "Timed In"}
-                    </span>
-                  </td>
-                  <td>
-                    {!att.time_out && (
-                      <button
-                        onClick={() => handleTimeOut(att.id)}
-                        className="timeout-btn"
+      <div className="attendance-container">
+        {/* Header */}
+        <div className="d-flex justify-content-between align-items-center flex-wrap gap-2">
+          <h1 className="text-xl font-semibold mb-0">Library Attendance</h1>
+          <div className="d-flex gap-2 align-items-center flex-wrap">
+            {/* Search */}
+            <div className="position-relative" style={{ maxWidth: "300px" }}>
+              <span
+                className="position-absolute top-50 translate-middle-y ps-2"
+                style={{ left: "10px", color: "#6c757d" }}
+              >
+                <i className="bi bi-search"></i>
+              </span>
+              <input
+                className="form-control ps-5 pe-5"
+                placeholder="Search"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            {/* Sort */}
+            <div className="position-relative" ref={sortRef}>
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSortMenuOpen(!sortMenuOpen);
+                }}
+              >
+                <i className="bi bi-sort-alpha-down me-2"></i> Sort
+              </button>
+              {sortMenuOpen && (
+                <div
+                  className="sort-dropdown"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <div className="sort-fields">
+                    {[
+                      { field: "name", label: "Name" },
+                      { field: "time_in", label: "Time In" },
+                      { field: "time_out", label: "Time Out" },
+                    ].map(({ field, label }) => (
+                      <div
+                        key={field}
+                        className={`sort-field ${
+                          sortField === field ? "active" : ""
+                        }`}
+                        onClick={() =>
+                          setSortField(sortField === field ? null : field)
+                        }
                       >
-                        Time Out
-                      </button>
-                    )}
-                  </td> */}
-                </tr>
-              ))
-            ) : (
+                        {sortField === field && (
+                          <span className="selected-dot"></span>
+                        )}
+                        {label}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="sort-order">
+                    <button
+                      className={`sort-btn ${
+                        sortOrder === "asc" ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        setSortOrder(sortOrder === "asc" ? null : "asc")
+                      }
+                    >
+                      ASC
+                    </button>
+                    <button
+                      className={`sort-btn ${
+                        sortOrder === "desc" ? "active" : ""
+                      }`}
+                      onClick={() =>
+                        setSortOrder(sortOrder === "desc" ? null : "desc")
+                      }
+                    >
+                      DESC
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Filter */}
+            <div className="position-relative" ref={filterRef}>
+              <button
+                className="btn btn-outline-secondary d-flex align-items-center"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFilterMenuOpen(!filterMenuOpen);
+                }}
+              >
+                <i className="bi bi-sliders me-2"></i> Filter
+              </button>
+
+              {filterMenuOpen && (
+                <div
+                  className="filter-dropdown"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {/* Visitor Type */}
+                  <div
+                    className={`filter-section-header ${
+                      visitorType !== "all" ? "active" : ""
+                    }`}
+                    onClick={() =>
+                      setShowVisitorTypeOptions(!showVisitorTypeOptions)
+                    }
+                  >
+                    Visitor Type{" "}
+                    <i
+                      className={`bi ${
+                        showVisitorTypeOptions
+                          ? "bi-chevron-down"
+                          : "bi-chevron-right"
+                      } ms-2`}
+                    ></i>
+                  </div>
+                  {showVisitorTypeOptions && (
+                    <div className="d-flex flex-column">
+                      {["all", "patron", "guest"].map((opt) => (
+                        <div
+                          key={opt}
+                          className={`filter-item ${
+                            visitorType === opt ? "active" : ""
+                          }`}
+                          onClick={() =>
+                            setVisitorType(opt as "all" | "patron" | "guest")
+                          }
+                        >
+                          {opt === "all"
+                            ? "All"
+                            : opt === "patron"
+                            ? "Patron"
+                            : "Guest"}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <button className="btn btn-secondary" onClick={exportCSV}>
+              <i className="bi bi-file-earmark-spreadsheet me-2"></i> Export
+            </button>
+          </div>
+        </div>
+
+        {/* Attendance Table */}
+        <div className="overflow-x-auto">
+          <table className="attendance-table">
+            <thead>
               <tr>
-                <td colSpan={10} className="text-center py-4">
-                  No attendance records found.
-                </td>
+                <th>Visitor</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Address</th>
+                <th>Number</th>
+                <th>Affiliation</th>
+                <th>Purpose</th>
+                <th>Time In</th>
+                <th>Time Out</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={10} className="text-center py-4">
+                    <LoadingSpinner />
+                  </td>
+                </tr>
+              ) : sortedAttendances.length > 0 ? (
+                sortedAttendances.map((att) => (
+                  <tr key={att.id}>
+                    <td>{att.type === "patron" ? "Patron" : "Guest"}</td>
+                    <td>{`${att.first_name} ${att.middle_name || ""} ${
+                      att.last_name
+                    } ${att.suffix || ""}`}</td>
+                    <td>{att.email || "-"}</td>
+                    <td>{`${att.barangay || "-"}, ${att.city || "-"}, ${
+                      att.province || "-"
+                    }`}</td>
+                    <td>{att.number || "-"}</td>
+                    <td>{att.affiliation || "-"}</td>
+                    <td>{att.purpose_of_visit || "-"}</td>
+                    <td>
+                      {att.time_in
+                        ? new Date(att.time_in).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-"}
+                    </td>
+                    <td>
+                      {att.time_out
+                        ? new Date(att.time_out).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "-"}
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={10} className="text-center py-4">
+                    No attendance records found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    </>
   );
 };
 

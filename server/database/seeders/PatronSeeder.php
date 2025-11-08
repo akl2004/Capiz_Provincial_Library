@@ -21,6 +21,7 @@ class PatronSeeder extends Seeder
                 'province'     => 'Capiz',
                 'barangay'     => 'Poblacion Proper',
                 'number'       => '09171234567',
+                'registered_by'=> 'Admin User',
             ],
             [
                 'patron_id'    => 'P002',
@@ -32,6 +33,7 @@ class PatronSeeder extends Seeder
                 'province'     => 'Capiz',
                 'barangay'     => 'Lawa-an',
                 'number'       => '09987654321',
+                'registered_by'=> 'Admin User',
             ],
         ];
 

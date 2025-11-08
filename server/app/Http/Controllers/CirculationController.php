@@ -64,7 +64,7 @@ class CirculationController extends Controller
     $patron   = Patron::where('patron_id', $validated['patron_id'])->firstOrFail();
 
     // Check patron status
-    if ($patron->status !== 'active') {
+    if ($patron->status !== 'Active') {
         return response()->json([
             'message' => 'Cannot issue book: Patron is deactivated or blocked.'
         ], 403);

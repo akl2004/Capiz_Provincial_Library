@@ -24,6 +24,7 @@ class Patron extends Model
         'status',
         'age',
         'gender',
+        'registered_by',
         'notes',
     ];
 

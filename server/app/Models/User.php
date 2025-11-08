@@ -22,6 +22,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
+        'registered_by',
         'status',
         'authToken', // optional: for compatibility
     ];
@@ -29,7 +30,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password', 
         'remember_token',
-        'authToken', // optional: hide from JSON
+        'authToken', 
     ];
 
     // Hash password automatically

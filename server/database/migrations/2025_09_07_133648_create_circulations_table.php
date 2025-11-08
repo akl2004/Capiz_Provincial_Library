@@ -23,7 +23,7 @@ return new class extends Migration {
             $table->decimal('fine', 8, 2)->default(0.00);
             $table->date('date_returned')->nullable();
 
-            $table->enum('status', ['available', 'borrowed', 'returned', 'lost', 'overdue'])->default('available');
+            $table->enum('status', ['Available', 'Borrowed', 'Returned', 'Renewed', 'Lost', 'Overdue'])->default('Available');
 
             $table->timestamps();
         });

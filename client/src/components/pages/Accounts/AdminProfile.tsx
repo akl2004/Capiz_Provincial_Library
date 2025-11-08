@@ -1,11 +1,10 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import AxiosInstance from "../../../AxiosInstance";
 import LoadingSpinner from "../../LoadingSpinner";
 import Alert from "../../Alert";
-import AdminProfile from "./AdminProfile";
 
-interface Staff {
+interface Admin {
   id: number;
   first_name: string;
   middle_name: string | null;
@@ -17,7 +16,6 @@ interface Staff {
   created_at: string;
   registered_by: string;
   last_login_at: string | null;
-  role: string;
 }
 
 interface ActivityLog {
@@ -29,19 +27,18 @@ interface ActivityLog {
   created_at: string;
 }
 
-const StaffProfile: React.FC = () => {
+interface AdminProfileProps {
+  user?: Admin;
+}
+
+const AdminProfile: React.FC<AdminProfileProps> = ({ user }) => {
   const { id } = useParams<{ id: string }>();
-  const [staff, setStaff] = useState<Staff | null>(null);
+  const [admin, setAdmin] = useState<Admin | undefined>(user);
   const [activityLogs, setActivityLogs] = useState<ActivityLog[]>([]);
-  const [loadingStaff, setLoadingStaff] = useState(true);
+  const [loadingAdmin, setLoadingAdmin] = useState(true);
   const [loadingLogs, setLoadingLogs] = useState(true);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterMenuOpen, setFilterMenuOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
-  const [sortOption, setSortOption] = useState<string | null>(null);
 
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -52,7 +49,7 @@ const StaffProfile: React.FC = () => {
     phone: "",
     email: "",
     password: "",
-    role: "staff",
+    role: "admin",
   });
 
   const [showResetModal, setShowResetModal] = useState(false);
@@ -73,14 +70,10 @@ const StaffProfile: React.FC = () => {
   const [showActivateModal, setShowActivateModal] = useState(false);
   const [activating, setActivating] = useState(false);
 
-  const [showPromoteModal, setShowPromoteModal] = useState(false);
-
-  const filterRef = useRef<HTMLDivElement>(null);
-
-  // Fetch Staff Details
+  // Fetch Admin Details
   useEffect(() => {
-    document.title = "Staff Profile";
-    const fetchStaff = async () => {
+    document.title = "Admin Profile";
+    const fetchAdmin = async () => {
       try {
         const token = localStorage.getItem("authToken");
         if (!token) throw new Error("No auth token found");
@@ -88,33 +81,33 @@ const StaffProfile: React.FC = () => {
         const res = await AxiosInstance.get(`/users/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setStaff(res.data);
+        setAdmin(res.data);
       } catch (err) {
-        console.error("Error fetching staff:", err);
+        console.error("Error fetching admin:", err);
       } finally {
-        setLoadingStaff(false);
+        setLoadingAdmin(false);
       }
     };
-    fetchStaff();
+    fetchAdmin();
   }, [id]);
 
-  // Editing staff info
+  // Editing admin info
   useEffect(() => {
-    if (showModal && staff) {
+    if (showModal && admin) {
       setFormData({
-        first_name: staff.first_name,
-        middle_name: staff.middle_name || "",
-        last_name: staff.last_name,
-        suffix: staff.suffix || "",
-        phone: staff.phone_number || "",
-        email: staff.email,
-        password: "", // leave empty for security
-        role: "staff", // or staff.role if editable
+        first_name: admin.first_name,
+        middle_name: admin.middle_name || "",
+        last_name: admin.last_name,
+        suffix: admin.suffix || "",
+        phone: admin.phone_number || "",
+        email: admin.email,
+        password: "",
+        role: "admin",
       });
     }
-  }, [showModal, staff]);
+  }, [showModal, admin]);
 
-  // Handle staff update form submit
+  // Handle admin update form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -138,22 +131,22 @@ const StaffProfile: React.FC = () => {
 
       setShowModal(false);
 
-      // Refresh staff details
-      setLoadingStaff(true);
+      // Refresh admin details
+      setLoadingAdmin(true);
       const res = await AxiosInstance.get(`/users/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setStaff(res.data);
+      setAdmin(res.data);
 
       // Success alert
-      setAlertMessage("Staff updated successfully!");
+      setAlertMessage("Admin updated successfully!");
       setAlertType("success");
     } catch (err) {
-      console.error("Error updating staff:", err);
-      setAlertMessage("Failed to update staff. Check console for errors.");
+      console.error("Error updating admin:", err);
+      setAlertMessage("Failed to update admin. Check console for errors.");
       setAlertType("error");
     } finally {
-      setLoadingStaff(false);
+      setLoadingAdmin(false);
       setLoading(false);
     }
   };
@@ -260,88 +253,60 @@ const StaffProfile: React.FC = () => {
       setAlertMessage("Password reset failed. Please try again.");
       setAlertType("error");
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
+
   // Confirming deactivation
   const handleDeactivate = async () => {
-    if (!staff) return;
+    if (!admin) return;
     setDeactivating(true);
     try {
-      await AxiosInstance.patch(`/users/${staff.id}/deactivate`);
+      await AxiosInstance.patch(`/users/${admin.id}/deactivate`);
       setShowDeactivateModal(false);
 
-      // Refresh staff data
-      const updated = await AxiosInstance.get(`/users/${staff.id}`);
-      setStaff(updated.data);
+      // Refresh admin data
+      const updated = await AxiosInstance.get(`/users/${admin.id}`);
+      setAdmin(updated.data);
 
       // Success alert
-      setAlertMessage("Staff has been deactivated successfully!");
+      setAlertMessage("Admin has been deactivated successfully!");
       setAlertType("success");
     } catch (error) {
-      console.error("Error deactivating staff:", error);
-      setAlertMessage("Failed to deactivate staff.");
+      console.error("Error deactivating admin:", error);
+      setAlertMessage("Failed to deactivate admin.");
       setAlertType("error");
     } finally {
       setDeactivating(false);
     }
   };
 
-  // Reactivate staff
+  // reactivate admin
   const handleActivate = async () => {
-    if (!staff) return;
+    if (!admin) return;
     setActivating(true);
     try {
-      await AxiosInstance.patch(`/users/${staff.id}/activate`);
+      await AxiosInstance.patch(`/users/${admin.id}/activate`);
       setShowActivateModal(false);
 
-      // Refresh staff data
-      const updated = await AxiosInstance.get(`/users/${staff.id}`);
-      setStaff(updated.data);
+      // Refresh admin data
+      const updated = await AxiosInstance.get(`/users/${admin.id}`);
+      setAdmin(updated.data);
 
       // Success alert
-      setAlertMessage("Staff has been reactivated successfully!");
+      setAlertMessage("Admin has been reactivated successfully!");
       setAlertType("success");
     } catch (error) {
-      console.error("Error activating staff:", error);
-      setAlertMessage("Failed to reactivate staff.");
+      console.error("Error activating admin:", error);
+      setAlertMessage("Failed to reactivate admin.");
       setAlertType("error");
     } finally {
       setActivating(false);
     }
   };
 
-  // Promoting staff to admin
-  const promoteStaff = async (staffId: number) => {
-    setLoading(true);
-    try {
-      await AxiosInstance.put(`/users/${staffId}/promote`);
-
-      // Fetch updated user
-      const token = localStorage.getItem("authToken");
-      if (!token) throw new Error("No auth token found");
-
-      const res = await AxiosInstance.get(`/users/${staffId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setStaff(res.data); // update staff state
-
-      // Success alert
-      setAlertMessage("Staff has been successfully promoted to Admin!");
-      setAlertType("success");
-    } catch (error: any) {
-      console.error(error);
-      setAlertMessage(
-        error.response?.data?.message || "Failed to promote staff."
-      );
-      setAlertType("error");
-      setLoading(false);
-    }
-  };
-
-  // Fetch Activity Logs for this specific staff
+  // Fetch Activity Logs for this specific admin
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -361,51 +326,11 @@ const StaffProfile: React.FC = () => {
     fetchLogs();
   }, [id]);
 
-  // Close filter menu if clicked outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        filterRef.current &&
-        !filterRef.current.contains(event.target as Node)
-      ) {
-        setFilterMenuOpen(false);
-        setActiveFilter(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  // Filter & Sort Activity Logs
-  const filteredLogs = activityLogs.filter((log) =>
-    searchTerm
-      ? log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.module.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.description.toLowerCase().includes(searchTerm.toLowerCase())
-      : true
-  );
-
-  const sortedLogs = [...filteredLogs].sort((a, b) => {
-    if (sortOption === "name_asc") return a.role.localeCompare(b.role);
-    if (sortOption === "name_desc") return b.role.localeCompare(a.role);
-    if (sortOption === "date_asc")
-      return (
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-      );
-    if (sortOption === "date_desc")
-      return (
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-    return 0;
-  });
-
-  const fullName = staff
-    ? [staff.first_name, staff.middle_name, staff.last_name, staff.suffix]
+  const fullName = admin
+    ? [admin.first_name, admin.middle_name, admin.last_name, admin.suffix]
         .filter(Boolean)
         .join(" ")
     : "";
-
-  if (staff?.role === "admin") return <AdminProfile user={staff} />;
 
   return (
     <div className="staff-profile mt-4 mb-5">
@@ -417,7 +342,6 @@ const StaffProfile: React.FC = () => {
           onClose={() => setAlertMessage("")}
         />
       )}
-
       <div className="mb-4">
         <h1 className="text-xl font-semibold">
           <span
@@ -427,7 +351,7 @@ const StaffProfile: React.FC = () => {
           >
             <i className="bi bi-arrow-left"></i>
           </span>
-          STAFF PROFILE
+          ADMIN PROFILE
         </h1>
       </div>
 
@@ -435,7 +359,7 @@ const StaffProfile: React.FC = () => {
       <div className="staff-profile d-flex justify-content-between align-items-center border p-3 mb-4">
         <div>
           <h4 className="mb-0">
-            {loadingStaff ? (
+            {loadingAdmin ? (
               <div
                 style={{
                   width: "250px",
@@ -449,7 +373,7 @@ const StaffProfile: React.FC = () => {
               <u>{fullName}</u>
             )}
           </h4>
-          <small className="text-muted">Staff</small>
+          <small className="text-muted">Admin</small>
         </div>
         <div className="patron-actions">
           <span
@@ -467,30 +391,21 @@ const StaffProfile: React.FC = () => {
           >
             Reset Password
           </span>
-
           {" | "}
           <span
             className="action-link"
             style={{ cursor: "pointer" }}
             onClick={() => {
-              if (staff?.status === "Active") {
+              if (admin?.status === "Active") {
                 setShowDeactivateModal(true);
               } else {
                 setShowActivateModal(true);
               }
             }}
           >
-            {staff?.status === "Deactivated"
+            {admin?.status === "Deactivated"
               ? "Reactivate Account"
               : "Deactivate Account"}
-          </span>
-          {" | "}
-          <span
-            className="action-link"
-            style={{ cursor: "pointer" }}
-            onClick={() => setShowPromoteModal(true)}
-          >
-            Promote
           </span>
         </div>
       </div>
@@ -498,33 +413,33 @@ const StaffProfile: React.FC = () => {
       {/* Personal Information */}
       <div className="staff-profile border mb-4 p-3">
         <h2 className="mb-3">Personal Information</h2>
-        {loadingStaff ? (
+        {loadingAdmin ? (
           <LoadingSpinner message="Loading personal info..." />
         ) : (
           <div className="personal-grid mb-3">
             <div className="grid-item">
               <div className="label">First Name</div>
-              <div className="value">{staff?.first_name || "N/A"}</div>
+              <div className="value">{admin?.first_name || "N/A"}</div>
             </div>
             <div className="grid-item">
               <div className="label">Middle Name</div>
-              <div className="value">{staff?.middle_name || "N/A"}</div>
+              <div className="value">{admin?.middle_name || "N/A"}</div>
             </div>
             <div className="grid-item">
               <div className="label">Last Name</div>
-              <div className="value">{staff?.last_name || "N/A"}</div>
+              <div className="value">{admin?.last_name || "N/A"}</div>
             </div>
             <div className="grid-item">
               <div className="label">Suffix</div>
-              <div className="value">{staff?.suffix || "N/A"}</div>
+              <div className="value">{admin?.suffix || "N/A"}</div>
             </div>
             <div className="grid-item">
               <div className="label">Email</div>
-              <div className="value">{staff?.email || "N/A"}</div>
+              <div className="value">{admin?.email || "N/A"}</div>
             </div>
             <div className="grid-item">
               <div className="label">Phone Number</div>
-              <div className="value">{staff?.phone_number || "N/A"}</div>
+              <div className="value">{admin?.phone_number || "N/A"}</div>
             </div>
           </div>
         )}
@@ -533,35 +448,35 @@ const StaffProfile: React.FC = () => {
       {/* Account Information */}
       <div className="staff-profile border mb-4 p-3">
         <h2 className="mb-4">Account Information</h2>
-        {loadingStaff ? (
+        {loadingAdmin ? (
           <LoadingSpinner message="Loading personal info..." />
         ) : (
           <div className="personal-grid">
             <div className="grid-item">
               <div className="label">Date Registered</div>
               <div className="value">
-                {staff?.created_at
-                  ? new Date(staff.created_at).toISOString().split("T")[0]
+                {admin?.created_at
+                  ? new Date(admin.created_at).toISOString().split("T")[0]
                   : "N/A"}
               </div>
             </div>
             <div className="grid-item">
               <div className="label">Registered By</div>
-              <div className="value">{staff?.registered_by || "N/A"}</div>
+              <div className="value">{admin?.registered_by || "N/A"}</div>
             </div>
             <div className="grid-item">
               <div className="label">Last Login</div>
               <div className="value">
-                {staff?.last_login_at
-                  ? new Date(staff.last_login_at).toISOString().split("T")[0]
+                {admin?.last_login_at
+                  ? new Date(admin.last_login_at).toISOString().split("T")[0]
                   : "N/A"}
               </div>
             </div>
             <div className="grid-item">
               <div className="label">Status</div>
               <div className="value">
-                <span className={`status-pill status-${staff?.status}`}>
-                  {staff?.status || "N/A"}
+                <span className={`status-pill status-${admin?.status}`}>
+                  {admin?.status || "N/A"}
                 </span>
               </div>
             </div>
@@ -571,104 +486,7 @@ const StaffProfile: React.FC = () => {
 
       {/* Activity Logs */}
       <div className="staff-profile border mt-4 p-3">
-        <div className="d-flex justify-content-between align-items-center mb-3">
-          <div>
-            <h2 className="mb-0">Activity Log</h2>
-            <p className="mb-3">
-              <i>Chronological list of tasks and changes made by the user.</i>
-            </p>
-          </div>
-
-          <div className="d-flex gap-2 align-items-center">
-            {/* Search */}
-            <div className="position-relative" style={{ maxWidth: "300px" }}>
-              <span
-                className="position-absolute top-50 translate-middle-y ps-2"
-                style={{ left: "10px", color: "#6c757d" }}
-              >
-                <i className="bi bi-search"></i>
-              </span>
-              <input
-                className="form-control ps-5 pe-5"
-                placeholder="Search"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-
-            {/* Filter */}
-            <div className="position-relative" ref={filterRef}>
-              <button
-                className="btn btn-outline-secondary d-flex align-items-center"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setFilterMenuOpen(!filterMenuOpen);
-                  setActiveFilter(null);
-                }}
-              >
-                <i className="bi bi-sliders me-2"></i> Filter
-              </button>
-
-              {filterMenuOpen && (
-                <div
-                  className="dropdown-menu show"
-                  style={{ position: "absolute", zIndex: 9999 }}
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <button
-                    className="dropdown-item"
-                    onClick={() =>
-                      setActiveFilter(activeFilter === "name" ? null : "name")
-                    }
-                  >
-                    Name
-                  </button>
-                  {activeFilter === "name" && (
-                    <div className="ms-3">
-                      <button
-                        className="dropdown-item"
-                        onClick={() => setSortOption("name_asc")}
-                      >
-                        <i className="bi bi-sort-alpha-down"></i> Asc
-                      </button>
-                      <button
-                        className="dropdown-item"
-                        onClick={() => setSortOption("name_desc")}
-                      >
-                        <i className="bi bi-sort-alpha-up"></i> Desc
-                      </button>
-                    </div>
-                  )}
-                  <button
-                    className="dropdown-item"
-                    onClick={() =>
-                      setActiveFilter(activeFilter === "date" ? null : "date")
-                    }
-                  >
-                    Date
-                  </button>
-                  {activeFilter === "date" && (
-                    <div className="ms-3">
-                      <button
-                        className="dropdown-item"
-                        onClick={() => setSortOption("date_asc")}
-                      >
-                        <i className="bi bi-sort-numeric-down"></i> Asc
-                      </button>
-                      <button
-                        className="dropdown-item"
-                        onClick={() => setSortOption("date_desc")}
-                      >
-                        <i className="bi bi-sort-numeric-down"></i> Desc
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+        <h2 className="mb-3">Activity Log</h2>
         {loadingLogs ? (
           <LoadingSpinner message="Loading activity logs..." />
         ) : activityLogs.length > 0 ? (
@@ -683,7 +501,7 @@ const StaffProfile: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {sortedLogs.map((log) => (
+              {activityLogs.map((log) => (
                 <tr key={log.id}>
                   <td>{new Date(log.created_at).toLocaleString()}</td>
                   <td>{log.role}</td>
@@ -705,7 +523,7 @@ const StaffProfile: React.FC = () => {
           <div className="modal-box">
             <h2 className="mb-0">EDIT ACCOUNT</h2>
             <p>
-              <i>Update the staff information below.</i>
+              <i>Update the admin information below.</i>
             </p>
             <hr />
             <form onSubmit={handleSubmit}>
@@ -844,6 +662,7 @@ const StaffProfile: React.FC = () => {
         </div>
       )}
 
+      {/* Reset Password Modal */}
       {showResetModal && (
         <div className="modal-overlay">
           <div className="modal-box">
@@ -944,8 +763,8 @@ const StaffProfile: React.FC = () => {
       {showActivateModal && (
         <div className="modal-overlay">
           <div className="modal-box">
-            <h2>Reactivate Staff</h2>
-            <p>Are you sure you want to reactivate this staff?</p>
+            <h2>Reactivate Admin</h2>
+            <p>Are you sure you want to reactivate this admin?</p>
             <div className="form-actions">
               <button
                 type="submit"
@@ -967,45 +786,8 @@ const StaffProfile: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Promote Confirmation Modal */}
-      {showPromoteModal && staff && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <h2>Confirm Promotion</h2>
-            <p>
-              Are you sure you want to promote{" "}
-              <strong>
-                {staff.first_name} {staff.last_name}
-              </strong>{" "}
-              to admin?
-            </p>
-            <div className="form-actions">
-              <button
-                type="submit"
-                className="submit-btn"
-                onClick={async () => {
-                  await promoteStaff(staff.id);
-                  setShowPromoteModal(false);
-                }}
-              >
-                {loading && <span className="spinner-tiny"></span>}
-                {loading ? "Promoting..." : "Promote"}
-              </button>
-
-              <button
-                type="button"
-                className="cancel-btn"
-                onClick={() => setShowPromoteModal(false)}
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-export default StaffProfile;
+export default AdminProfile;

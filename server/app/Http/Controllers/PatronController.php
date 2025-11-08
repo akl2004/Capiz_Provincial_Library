@@ -52,6 +52,9 @@ class PatronController extends Controller
             $validated['patron_id'] = Patron::generateUniquePatronId();
         }
 
+        // Add registered_by
+        $validated['registered_by'] = $user->first_name . ' ' . $user->last_name; 
+
         $patron = Patron::create($validated);
 
         // Add expiration_date dynamically
@@ -149,7 +152,7 @@ class PatronController extends Controller
         return response()->json($stats);
     }
 
-    
+    // deactivating a patron
     public function deactivate(Request $request, $id)
     {
         $user = $request->user();
@@ -167,6 +170,55 @@ class PatronController extends Controller
         ]);
     }
 
+    // blocking a patron
+    public function block(Request $request, $id)
+    {
+        $user = $request->user();
+        $patron = Patron::findOrFail($id);
+
+        // Update status to "Blocked"
+        $patron->status = 'Blocked';
+        $patron->save();
+
+        // 🧾 Log the activity
+        $this->logActivity(
+            'Block Patron',
+            'Blocked patron: ' . $patron->first_name . ' ' . $patron->last_name,
+            $user
+        );
+
+        return response()->json([
+            'message' => 'Patron account blocked successfully',
+            'patron' => $patron
+        ]);
+    }
+
+    // reactivate patron
+    public function activate(Request $request, $id)
+    {
+        $user = $request->user();
+        $patron = Patron::findOrFail($id);
+
+        if ($patron->status === 'Active') {
+            return response()->json(['message' => 'Patron is already active'], 400);
+        }
+
+        $patron->status = 'Active';
+        $patron->save();
+
+        // 🧾 Log the activity
+        $this->logActivity(
+            'Activate Patron',
+            'Activated patron: ' . $patron->first_name . ' ' . $patron->last_name,
+            $user
+        );
+
+        return response()->json([
+            'message' => 'Patron activated successfully',
+            'patron' => $patron
+        ]);
+    }
+
     /** 🧾 Helper function to record activity **/
     private function logActivity($action, $description = null, $user)
     {
@@ -178,6 +230,51 @@ class PatronController extends Controller
             'description' => $description,
         ]);
     }
+
+public function updateEditableFields(Request $request, $id)
+{
+    $user = $request->user();
+    $patron = Patron::findOrFail($id);
+
+    // Validate only editable fields
+    $validated = $request->validate([
+        'email'    => 'sometimes|email|unique:patrons,email,' . $id,
+        'barangay' => 'nullable|string|max:255',
+        'city'     => 'sometimes|string|max:255',
+        'province' => 'sometimes|string|max:255',
+        'age'      => 'nullable|integer|min:0',
+        'number'   => 'nullable|string|max:20',
+        'notes'    => 'nullable|string|max:500',
+    ]);
+
+    // Determine which fields are actually changing
+    $updatedFields = [];
+    foreach ($validated as $key => $newValue) {
+        $oldValue = $patron->$key ?? '';
+        if ((string)$oldValue !== (string)($newValue ?? '')) {
+            $updatedFields[] = $key;
+        }
+    }
+
+    // Update only if there are changes
+    if (!empty($updatedFields)) {
+        $patron->update(array_intersect_key($validated, array_flip($updatedFields)));
+
+        // Build a simple log description
+        $description = 'Updated ' . implode(', ', $updatedFields) . ' for ' . $patron->first_name . ' ' . $patron->last_name;
+    } else {
+        $description = 'No changes made for ' . $patron->first_name . ' ' . $patron->last_name;
+    }
+
+    $this->logActivity('Edit Patron (Limited Fields)', $description, $user);
+
+    return response()->json([
+        'message' => 'Patron information successfully updated.',
+        'patron'  => $patron
+    ]);
+}
+
+
 
 
 }

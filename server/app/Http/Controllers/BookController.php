@@ -226,18 +226,25 @@ class BookController extends Controller
             return response()->json([], 200);
         }
 
-        $books = Book::where('title', 'like', '%' . $query . '%')
+        $books = Book::with('copies') // ✅ include related copies
+            ->where('title', 'like', '%' . $query . '%')
+            ->orWhere('author', 'like', '%' . $query . '%')
+            ->orWhere('section', 'like', '%' . $query . '%')
             ->orWhereRaw("JSON_UNQUOTE(JSON_EXTRACT(topical_subject, '$[*]')) LIKE ?", ["%{$query}%"])
             ->get();
 
-        // Convert JSON array to comma-separated string for display
+        // ✅ Convert topical_subject from JSON to readable string
         $books->each(function ($book) {
             $subjectsArray = json_decode($book->topical_subject, true) ?? [];
-            $book->topical_subject = implode(", ", $subjectsArray);
+            $book->topical_subject = implode(', ', $subjectsArray);
+
+            // ✅ Optionally include only one material_type summary for convenience
+            $book->material_type = $book->copies->first()->material_type ?? 'N/A';
         });
 
         return response()->json($books, 200);
     }
+
 
 
     public function addCopy(Request $request, $id)

@@ -63,28 +63,35 @@ const LoginModal: React.FC<LoginModalProps> = ({
           &times;
         </button>
         <h3>{role} Login</h3>
+        <hr className="mt-0 mb-0"/>
         <p className="subtitle">Enter your credentials</p>
 
         {error && <p style={{ color: "red", fontSize: "0.9rem" }}>{error}</p>}
 
         <form onSubmit={handleLogin}>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <div className="input-group">
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              placeholder=" "
+            />
+            <label htmlFor="email">Email</label>
+          </div>
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type={showPassword ? "text" : "password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div className="input-group">
+            <input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              placeholder=" "
+            />
+            <label htmlFor="password">Password</label>
+          </div>
 
           <div className="show-password-container">
             <input

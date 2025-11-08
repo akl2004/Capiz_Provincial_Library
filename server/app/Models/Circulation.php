@@ -44,6 +44,6 @@ class Circulation extends Model
     // ✅ Helper: check if this circulation is overdue
     public function getIsOverdueAttribute(): bool
     {
-        return $this->status === 'borrowed' && $this->due_date instanceof Carbon && $this->due_date->isPast();
+        return $this->status === 'Borrowed' && $this->due_date instanceof Carbon && $this->due_date->isPast();
     }
 }

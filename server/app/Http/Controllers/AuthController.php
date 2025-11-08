@@ -37,8 +37,8 @@ class AuthController extends Controller
 
 
     // Only allow active or onleave staff/admin
-    if ($user->status === 'inactive') {
-        return response()->json(['message' => 'Your account is inactive'], 403);
+    if ($user->status === 'Deactivated') {
+        return response()->json(['message' => 'Your account is Deactivated'], 403);
     }
 
     // Create token
